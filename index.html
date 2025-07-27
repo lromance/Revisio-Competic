@@ -1,4 +1,23 @@
-<!DOCTYPE html>
+async function testConnection() {
+            clearResults();
+            showLoading(true);
+            
+            const apiKey = document.getElementById('apiKeyInput').value.trim();
+            
+            if (!apiKey) {
+                addResult('❌ Por favor, introduce tu API Key de Google Sheets', 'error');
+                showLoading(false);
+                return;
+            }
+            
+            // Validar formato básico de API Key
+            if (!apiKey.startsWith('AIza') || apiKey.length < 35) {
+                addResult('⚠️ El formato de la API Key parece incorrecto. Debería empezar con "AIza" y tener ~39 caracteres', 'warning');
+            }
+            
+            try {
+                // Paso 1: Cargar Google API
+       <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
@@ -143,23 +162,36 @@
 
         document.getElementById('apiKeyInput').addEventListener('input', updateConfigStatus);
 
-        // Cargar Google API
+        // Cargar Google API con timeout y más logging
         function loadGoogleAPI() {
             return new Promise((resolve, reject) => {
+                const timeout = setTimeout(() => {
+                    reject(new Error('Timeout: La API de Google tardó más de 30 segundos en cargar'));
+                }, 30000);
+
                 if (window.gapi) {
+                    addResult('✅ Google API ya estaba cargada', 'success');
+                    clearTimeout(timeout);
                     resolve();
                     return;
                 }
                 
+                addResult('🔄 Descargando script de Google API...', 'info');
+                
                 window.handleClientLoad = function() {
+                    addResult('✅ Script de Google API descargado', 'success');
+                    addResult('🔄 Inicializando módulos client y auth2...', 'info');
+                    
                     window.gapi.load('client:auth2', async () => {
                         try {
                             gapi = window.gapi;
                             gapiReady = true;
-                            addResult('✅ Google API cargada correctamente', 'success');
+                            addResult('✅ Módulos client y auth2 cargados', 'success');
+                            clearTimeout(timeout);
                             resolve();
                         } catch (error) {
-                            addResult('❌ Error cargando Google API: ' + error.message, 'error');
+                            addResult('❌ Error inicializando módulos: ' + error.message, 'error');
+                            clearTimeout(timeout);
                             reject(error);
                         }
                     });
@@ -167,7 +199,14 @@
                 
                 const script = document.createElement('script');
                 script.src = 'https://apis.google.com/js/api.js?onload=handleClientLoad';
-                script.onerror = () => reject(new Error('No se pudo cargar la API de Google'));
+                script.onload = () => {
+                    addResult('📦 Script tag cargado correctamente', 'info');
+                };
+                script.onerror = (error) => {
+                    addResult('❌ Error descargando script de Google API', 'error');
+                    clearTimeout(timeout);
+                    reject(new Error('No se pudo cargar la API de Google'));
+                };
                 document.head.appendChild(script);
             });
         }
