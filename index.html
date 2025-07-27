@@ -7,9 +7,9 @@
     <!-- Política de Seguridad de Contenido (CSP) para permitir scripts y recursos de Google y Tailwind -->
     <meta http-equiv="Content-Security-Policy" content="
         default-src 'self';
-        script-src 'self' https://apis.google.com https://accounts.google.com https://www.gstatic.com https://cdn.tailwindcss.com https://www.google.com 'unsafe-inline' 'unsafe-eval';
+        script-src 'self' https://accounts.google.com https://www.gstatic.com https://cdn.tailwindcss.com https://www.google.com 'unsafe-inline' 'unsafe-eval';
         frame-src https://accounts.google.com https://www.google.com;
-        connect-src 'self' https://sheets.googleapis.com https://www.googleapis.com https://accounts.google.com https://www.google.com;
+        connect-src 'self' https://sheets.googleapis.com https://www.googleapis.com https://accounts.google.com https://www.google.com https://generativelanguage.googleapis.com;
         img-src 'self' data: https://www.gstatic.com https://www.google.com;
         style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.tailwindcss.com;
         font-src 'self' data: https://fonts.gstatic.com;
@@ -393,17 +393,28 @@
             console.log(`callSheetsApi() iniciado: ${method} ${url}`);
             if (!accessToken) {
                 // Si no hay token, intentar obtenerlo de nuevo (interactivo)
+                // Esta parte se ejecutará si el token expiró o no se obtuvo inicialmente
+                console.warn('No hay token de acceso al llamar a Sheets API. Intentando re-autenticar...');
                 return new Promise((resolve, reject) => {
-                    tokenClient.callback = (response) => {
+                    tokenClient.callback = (response) => { // Reasignar callback para esta promesa específica
                         if (response.error) {
                             reject(new Error('No hay token de acceso. Autenticación fallida.'));
                         } else {
                             accessToken = response.access_token;
                             // Reintentar la llamada original con el nuevo token
+                            const headers = {
+                                'Authorization': `Bearer ${accessToken}`,
+                                'Content-Type': 'application/json'
+                            };
+                            const options = {
+                                method: method,
+                                headers: headers,
+                                body: body ? JSON.stringify(body) : null,
+                            };
                             fetch(url, options).then(res => res.json()).then(resolve).catch(reject);
                         }
                     };
-                    tokenClient.requestAccessToken({ prompt: 'consent' });
+                    tokenClient.requestAccessToken({ prompt: 'consent' }); // Forzar consentimiento para obtener nuevo token
                 });
             }
 
@@ -536,15 +547,6 @@
         }
 
         /**
-         * Inicia la evaluación.
-         * Carga el alumno y el idioma seleccionados y pasa a la sección de vocabulario.
-         */
-        // El event listener del botón "Començar" ahora solo llama a tokenClient.requestAccessToken
-        // La lógica de carga de datos se mueve al callback de tokenClient.
-        // Se ha simplificado para que el botón siempre intente obtener el token.
-        // La validación de alumno seleccionado se mantiene.
-        
-        /**
          * Inicia la sección de evaluación de vocabulario.
          * Selecciona 10 palabras aleatorias y genera preguntas.
          */
@@ -563,7 +565,7 @@
                 return;
             }
             const shuffledVocab = [...vocabularyData].sort(() => 0.5 - Math.random());
-            const selectedVocab = shuffledVocaled.slice(0, 10);
+            const selectedVocab = shuffledVocab.slice(0, 10);
 
             showLoading(loadingVocab, true);
             vocabQuestionText.textContent = 'Generant preguntes de vocabulari amb Gemini...';
