@@ -4,15 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Asistent TIC - CFA LA PAU</title>
-    <!-- Política de Seguridad de Contenido (CSP) para permitir scripts y recursos de Google y Tailwind -->
+    <!-- Política de Seguridad de Contenido (CSP) - MUY PERMISIVA PARA DEBUGGING -->
+    <!-- ADVERTENCIA: NO USAR EN PRODUCCIÓN REAL SIN RESTRINGIRLA. -->
     <meta http-equiv="Content-Security-Policy" content="
         default-src 'self';
-        script-src 'self' https://accounts.google.com https://www.gstatic.com https://cdn.tailwindcss.com https://www.google.com 'unsafe-inline' 'unsafe-eval';
-        frame-src https://accounts.google.com https://www.google.com;
-        connect-src 'self' https://sheets.googleapis.com https://www.googleapis.com https://accounts.google.com https://www.google.com https://generativelanguage.googleapis.com;
-        img-src 'self' data: https://www.gstatic.com https://www.google.com;
-        style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.tailwindcss.com;
-        font-src 'self' data: https://fonts.gstatic.com;
+        script-src * 'unsafe-inline' 'unsafe-eval'; /* Permite scripts de cualquier origen */
+        frame-src *; /* Permite iframes de cualquier origen */
+        connect-src *; /* Permite conexiones de red a cualquier origen */
+        img-src 'self' data: *; /* Permite imágenes de cualquier origen y data URIs */
+        style-src 'self' 'unsafe-inline' *; /* Permite estilos de cualquier origen */
+        font-src 'self' data: *; /* Permite fuentes de cualquier origen */
     ">
     <!-- Carga de Tailwind CSS para un diseño moderno y responsive -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -336,16 +337,39 @@
             console.log('tokenClientCallback() llamado con respuesta:', response);
             if (response.error) {
                 console.error('Error al obtener token de acceso:', response.error);
-                showError(errorWelcome, 'Error al autenticar: ' + response.error);
+                // Mensaje más claro para el usuario
+                if (response.error === 'interaction_required') {
+                    showError(errorWelcome, 'Autenticació necessària. Clica "Començar" per iniciar sessió amb Google.');
+                } else {
+                    showError(errorWelcome, 'Error al autenticar: ' + (response.error_subtype || response.error || 'error desconocido') + '. Clica "Començar" per reintentar.');
+                }
                 accessToken = null;
-                authStatus.textContent = 'Autenticació fallida. Clica "Començar" per reintentar.';
+                authStatus.textContent = 'Autenticació fallida.';
                 startButton.disabled = false; // Re-habilitar botón para reintento manual
             } else {
                 accessToken = response.access_token;
                 console.log('Access Token obtenido:', accessToken);
                 authStatus.textContent = 'Autenticat amb Google Sheets.';
                 startButton.disabled = false;
-                loadInitialData(); // Cargar datos una vez autenticado
+
+                // Load initial data, then proceed to evaluation if student selected
+                loadInitialData().then(() => {
+                    // Re-read selected student and language after data might have been loaded/reloaded
+                    currentStudent = studentSelect.value;
+                    currentLanguage = languageSelect.value;
+
+                    if (currentStudent && studentsData.length > 0 && vocabularyData.length > 0 && dailyTopicData !== null) {
+                        console.log('Autenticación y carga de datos completadas. Iniciando evaluación de vocabulario automáticamente.');
+                        startVocabularyEvaluation();
+                    } else {
+                        // If no student selected yet, or data somehow incomplete, wait for user to click "Començar" again
+                        // This case might happen after silent auth if user hasn't selected a student yet.
+                        console.log('Autenticación y carga de datos completadas, pero falta selección de alumno para iniciar evaluación.');
+                    }
+                }).catch(error => {
+                    console.error("Error during initial data load after token acquisition:", error);
+                    showError(errorWelcome, 'Error al carregar les dades inicials després de l\'autenticació: ' + error.message);
+                });
             }
         }
 
@@ -381,14 +405,34 @@
         /**
          * Inicia el flujo de autenticación de GSI cuando se hace clic en el botón.
          */
-        startButton.addEventListener('click', () => {
-            console.log('Botón "Començar" clicado. Solicitando token de acceso...');
-            if (tokenClient) {
-                tokenClient.requestAccessToken({ prompt: 'consent' }); // Forzar el consentimiento si es necesario
-                authStatus.textContent = 'Esperant la teva autorització...';
-                startButton.disabled = true;
+        startButton.addEventListener('click', async () => {
+            console.log('Botón "Començar" clicado.');
+
+            currentStudent = studentSelect.value;
+            currentLanguage = languageSelect.value;
+
+            if (!currentStudent) {
+                showError(errorWelcome, 'Per favor, selecciona el teu nom.');
+                return;
+            }
+            hideError(errorWelcome);
+
+            // Si ya tenemos un accessToken y los datos iniciales están cargados, procedemos directamente
+            if (accessToken && studentsData.length > 0 && vocabularyData.length > 0 && dailyTopicData !== null) {
+                console.log('Autenticado y datos cargados. Iniciando evaluación de vocabulario directamente.');
+                startVocabularyEvaluation();
             } else {
-                showError(errorWelcome, 'El client d\'autenticació de Google no s\'ha inicialitzat. Recarrega la pàgina.');
+                // Si no estamos autenticados o los datos no están cargados, iniciamos la autenticación GSI
+                console.log('No autenticado o datos no cargados. Solicitando token de acceso...');
+                if (tokenClient) {
+                    // Esto disparará tokenClientCallback, que luego llamará a loadInitialData,
+                    // y luego condicionalmente a startVocabularyEvaluation.
+                    tokenClient.requestAccessToken({ prompt: 'consent' });
+                    authStatus.textContent = 'Esperant la teva autorització...';
+                    startButton.disabled = true;
+                } else {
+                    showError(errorWelcome, 'El client d\'autenticació de Google no s\'ha inicialitzat. Recarrega la pàgina.');
+                }
             }
         });
 
@@ -403,17 +447,14 @@
             console.log(`callSheetsApi() iniciado: ${method} ${url}`);
             if (!accessToken) {
                 // Si no hay token, intentar obtenerlo de nuevo (interactivo)
-                // Esta parte se ejecutará si el token expiró o no se obtuvo inicialmente
                 console.warn('No hay token de acceso al llamar a Sheets API. Intentando re-autenticar...');
                 return new Promise((resolve, reject) => {
-                    // Guardar el callback original para restaurarlo después de esta autenticación
-                    const originalCallback = tokenClient.callback;
-                    tokenClient.callback = (response) => { // Reasignar callback para esta promesa específica
-                        // Restaurar el callback original
-                        tokenClient.callback = originalCallback;
+                    const originalCallback = tokenClient.callback; // Guardar el callback original
+                    tokenClient.callback = (response) => {
+                        tokenClient.callback = originalCallback; // Restaurar el callback original
 
                         if (response.error) {
-                            reject(new Error('No hay token de acceso. Autenticación fallida.'));
+                            reject(new Error('No hay token de acceso. Autenticación fallida: ' + (response.error_subtype || response.error)));
                         } else {
                             accessToken = response.access_token;
                             // Reintentar la llamada original con el nuevo token
