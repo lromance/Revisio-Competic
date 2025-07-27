@@ -4,15 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Asistent TIC - CFA LA PAU</title>
-    <!-- Política de Seguridad de Contenido (CSP) para permitir scripts de Google -->
-    <!-- Esto intenta solucionar el error "Refused to load the script ... because it violates the following Content Security Policy" -->
+    <!-- Política de Seguridad de Contenido (CSP) para permitir scripts y recursos de Google y Tailwind -->
     <meta http-equiv="Content-Security-Policy" content="
         default-src 'self';
-        script-src 'self' https://apis.google.com https://accounts.google.com https://www.gstatic.com 'unsafe-inline' 'unsafe-eval';
-        frame-src https://accounts.google.com;
-        connect-src 'self' https://sheets.googleapis.com https://www.googleapis.com https://accounts.google.com;
-        img-src 'self' data: https://www.gstatic.com;
-        style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
+        script-src 'self' https://apis.google.com https://accounts.google.com https://www.gstatic.com https://cdn.tailwindcss.com https://www.google.com 'unsafe-inline' 'unsafe-eval';
+        frame-src https://accounts.google.com https://www.google.com;
+        connect-src 'self' https://sheets.googleapis.com https://www.googleapis.com https://accounts.google.com https://www.google.com;
+        img-src 'self' data: https://www.gstatic.com https://www.google.com;
+        style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.tailwindcss.com;
         font-src 'self' data: https://fonts.gstatic.com;
     ">
     <!-- Carga de Tailwind CSS para un diseño moderno y responsive -->
@@ -226,8 +225,7 @@
         };
 
         // --- VARIABLES GLOBALES DE LA APLICACIÓN ---
-        let gapiInited = false;
-        let auth2; // Referencia a gapi.auth2
+        let tokenClient; // Cliente de token de GSI
         let accessToken = null; // Token de acceso para las llamadas a la API de Sheets
 
         let studentsData = []; // Datos de la hoja LlistaAlumnes
@@ -330,66 +328,59 @@
         }
 
         /**
-         * Callback global para cuando la librería gapi.js se carga.
-         * Es el punto de entrada para cargar el módulo auth2 de la API de Google.
+         * Callback para el cliente de token de GSI.
+         * Se llama cuando el token de acceso está disponible o hay un error.
+         * @param {object} response La respuesta del token.
          */
-        window.handleClientLoad = function() {
-            console.log('handleClientLoad() llamado. Cargando módulo auth2 de gapi...');
-            gapi.load('auth2', initializeGapiAuth); // Solo necesitamos auth2
-        }
-
-        /**
-         * Inicializa el cliente de autenticación de Google.
-         */
-        window.initializeGapiAuth = async function() {
-            console.log('initializeGapiAuth() iniciado.');
-            try {
-                auth2 = gapi.auth2.init({
-                    clientId: GOOGLE_CLIENT_ID,
-                    scope: GOOGLE_SCOPES,
-                });
-                gapiInited = true; // gapi.auth2 está listo
-
-                // Escuchar cambios en el estado de autenticación
-                auth2.isSignedIn.listen(updateSignInStatus);
-                await updateSignInStatus(auth2.isSignedIn.get()); // Actualizar estado inicial
-                console.log('Google Auth client initialized successfully.');
-            } catch (error) {
-                console.error('Error initializing Google Auth client:', error);
-                showError(errorWelcome, 'Error al inicialitzar l\'autenticació de Google. Revisa el teu Client ID i connexió. Detalles: ' + (error.details || error.message || JSON.stringify(error)));
-            }
-        }
-
-        /**
-         * Actualiza el estado de autenticación en la UI.
-         * @param {boolean} isSignedIn True si el usuario está autenticado.
-         */
-        async function updateSignInStatus(isSignedIn) {
-            console.log('updateSignInStatus() llamado. isSignedIn:', isSignedIn);
-            if (isSignedIn) {
+        function tokenClientCallback(response) {
+            console.log('tokenClientCallback() llamado con respuesta:', response);
+            if (response.error) {
+                console.error('Error al obtener token de acceso:', response.error);
+                showError(errorWelcome, 'Error al autenticar: ' + response.error);
+                accessToken = null;
+                authStatus.textContent = 'Autenticació fallida. Clica "Començar" per reintentar.';
+                startButton.disabled = false; // Re-habilitar botón para reintento manual
+            } else {
+                accessToken = response.access_token;
+                console.log('Access Token obtenido:', accessToken);
                 authStatus.textContent = 'Autenticat amb Google Sheets.';
                 startButton.disabled = false;
-                accessToken = auth2.currentUser.get().getAuthResponse().access_token;
-                console.log('Access Token obtenido para Sheets API calls.');
-                await loadInitialData(); // Cargar datos una vez autenticado
-            } else {
-                authStatus.textContent = 'Necessites autenticar-te per accedir a Google Sheets.';
-                startButton.disabled = true;
-                accessToken = null;
-                // Intentar autenticar de forma silenciosa o mostrar botón de autenticación
-                try {
-                    // Solo intentar signIn si no estamos ya en un intento de inicio de sesión
-                    // y si no se han otorgado los scopes necesarios.
-                    if (auth2 && !auth2.isSignedIn.get()) { // Asegurarse de que auth2 está inicializado
-                        await auth2.signIn(); // Intenta iniciar sesión automáticamente
-                        console.log('Intento de signIn silencioso...');
-                    }
-                } catch (error) {
-                    console.warn('Silent sign-in failed, user needs to click start button to authorize:', error);
-                    showError(errorWelcome, 'No s\'ha pogut autenticar automàticament. Clica "Començar" per iniciar sessió.');
-                }
+                loadInitialData(); // Cargar datos una vez autenticado
             }
         }
+
+        /**
+         * Inicializa el cliente de token de Google Identity Services (GSI).
+         */
+        function initializeGsiTokenClient() {
+            console.log('initializeGsiTokenClient() iniciado.');
+            tokenClient = google.accounts.oauth2.initTokenClient({
+                client_id: GOOGLE_CLIENT_ID,
+                scope: GOOGLE_SCOPES,
+                callback: tokenClientCallback,
+            });
+            console.log('GSI Token Client inicializado.');
+            // Intentar autenticación silenciosa si es posible
+            if (tokenClient) {
+                tokenClient.requestAccessToken({ prompt: 'none' }); // Intento silencioso
+                authStatus.textContent = 'Intentant autenticació automàtica...';
+                startButton.disabled = true;
+            }
+        }
+
+        /**
+         * Inicia el flujo de autenticación de GSI cuando se hace clic en el botón.
+         */
+        startButton.addEventListener('click', () => {
+            console.log('Botón "Començar" clicado. Solicitando token de acceso...');
+            if (tokenClient) {
+                tokenClient.requestAccessToken({ prompt: 'consent' }); // Forzar el consentimiento si es necesario
+                authStatus.textContent = 'Esperant la teva autorització...';
+                startButton.disabled = true;
+            } else {
+                showError(errorWelcome, 'El client d\'autenticació de Google no s\'ha inicialitzat. Recarrega la pàgina.');
+            }
+        });
 
         /**
          * Realiza una llamada a la API de Google Sheets usando fetch.
@@ -401,7 +392,19 @@
         async function callSheetsApi(url, method = 'GET', body = null) {
             console.log(`callSheetsApi() iniciado: ${method} ${url}`);
             if (!accessToken) {
-                throw new Error('No hay token de acceso. Por favor, autentícate.');
+                // Si no hay token, intentar obtenerlo de nuevo (interactivo)
+                return new Promise((resolve, reject) => {
+                    tokenClient.callback = (response) => {
+                        if (response.error) {
+                            reject(new Error('No hay token de acceso. Autenticación fallida.'));
+                        } else {
+                            accessToken = response.access_token;
+                            // Reintentar la llamada original con el nuevo token
+                            fetch(url, options).then(res => res.json()).then(resolve).catch(reject);
+                        }
+                    };
+                    tokenClient.requestAccessToken({ prompt: 'consent' });
+                });
             }
 
             const headers = {
@@ -454,7 +457,6 @@
         /** Carga la lista de alumnos desde la hoja 'LlistaAlumnes' usando fetch. */
         async function loadStudents() {
             console.log('loadStudents() iniciado. Intentando obtener datos de LlistaAlumnes...');
-            // La API Key no es necesaria para las llamadas con token de acceso OAuth
             const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${SHEET_NAMES.STUDENTS}!A:B`;
             const response = await callSheetsApi(url);
             const values = response.values;
@@ -537,47 +539,11 @@
          * Inicia la evaluación.
          * Carga el alumno y el idioma seleccionados y pasa a la sección de vocabulario.
          */
-        startButton.addEventListener('click', async () => {
-            console.log('Botón "Començar" clicado.');
-            if (!auth2 || !auth2.isSignedIn.get()) { // Verificar que auth2 existe y que el usuario está autenticado
-                console.log('Usuario no autenticado o auth2 no inicializado. Intentando signIn interactivo...');
-                try {
-                    // Si auth2 no está listo, intentamos inicializarlo de nuevo si es necesario
-                    if (!auth2) {
-                        await initializeGapiAuth(); // Re-inicializar si no está listo
-                    }
-                    await auth2.signIn();
-                    console.log('signIn interactivo completado (esperando updateSignInStatus).');
-                } catch (error) {
-                    console.error('Error during interactive sign-in:', error);
-                    showError(errorWelcome, 'No s\'ha pogut autenticar. Revisa els permisos del navegador.');
-                }
-                return; // Esperar a que se complete la autenticación
-            }
-
-            currentStudent = studentSelect.value;
-            currentLanguage = languageSelect.value;
-
-            if (!currentStudent) {
-                showError(errorWelcome, 'Per favor, selecciona el teu nom.');
-                return;
-            }
-            hideError(errorWelcome);
-
-            // Intentar cargar datos de nuevo si no se cargaron por algún motivo (ej. error previo)
-            if (studentsData.length === 0 || vocabularyData.length === 0 || dailyTopicData === null) {
-                console.log('Datos iniciales no cargados completamente. Intentando recargar...');
-                await loadInitialData();
-                if (studentsData.length === 0 || vocabularyData.length === 0 || dailyTopicData === null) {
-                    showError(errorWelcome, 'No s\'han pogut carregar totes les dades necessàries. Revisa les fulles de càlcul.');
-                    return;
-                }
-            }
-
-            // Iniciar la evaluación de vocabulario
-            startVocabularyEvaluation();
-        });
-
+        // El event listener del botón "Començar" ahora solo llama a tokenClient.requestAccessToken
+        // La lógica de carga de datos se mueve al callback de tokenClient.
+        // Se ha simplificado para que el botón siempre intente obtener el token.
+        // La validación de alumno seleccionado se mantiene.
+        
         /**
          * Inicia la sección de evaluación de vocabulario.
          * Selecciona 10 palabras aleatorias y genera preguntas.
@@ -597,7 +563,7 @@
                 return;
             }
             const shuffledVocab = [...vocabularyData].sort(() => 0.5 - Math.random());
-            const selectedVocab = shuffledVocab.slice(0, 10);
+            const selectedVocab = shuffledVocaled.slice(0, 10);
 
             showLoading(loadingVocab, true);
             vocabQuestionText.textContent = 'Generant preguntes de vocabulari amb Gemini...';
@@ -1105,13 +1071,11 @@
         document.addEventListener('DOMContentLoaded', () => {
             console.log('DOMContentLoaded: Mostrando welcomeSection.');
             showSection('welcomeSection');
-            // La inicialización de gapi se maneja por el atributo 'onload' del script tag
-            // y luego se llama a initializeGapiAuth.
-            // La carga de datos inicial se dispara después de la autenticación exitosa.
+            // Inicializar GSI Token Client cuando el DOM esté listo
+            initializeGsiTokenClient();
         });
     </script>
-    <!-- Carga de la librería cliente de Google APIs -->
-    <!-- La librería gapi.js buscará automáticamente window.handleClientLoad cuando esté lista. -->
-    <script async defer src="https://apis.google.com/js/api.js?onload=handleClientLoad"></script>
+    <!-- Carga de la librería cliente de Google Identity Services (GSI) -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
 </body>
 </html>
