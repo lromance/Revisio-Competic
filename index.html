@@ -187,7 +187,7 @@
     </div>
 
     <!-- Carga de la librería cliente de Google APIs -->
-    <script async defer src="https://apis.google.com/js/api.js" onload="gapiLoaded()"></script>
+    <script async defer src="https://apis.google.com/js/api.js"></script>
     <script>
         // --- CONFIGURACIÓN DE LA APLICACIÓN ---
         // IMPORTANTE: Reemplaza estos placeholders con tus valores reales.
@@ -219,7 +219,7 @@
         let gapiInited = false;
         let gisInited = false;
         let tokenClient;
-        let gapi; // Referencia a la librería gapi
+        let gapiInstance; // Renombrado para evitar conflicto con la variable global 'gapi'
         let auth2; // Referencia a gapi.auth2
 
         let studentsData = []; // Datos de la hoja LlistaAlumnes
@@ -324,8 +324,9 @@
         /**
          * Inicializa la librería cliente de Google APIs.
          * Se llama cuando el script de gapi.js se carga.
+         * ESTA FUNCIÓN DEBE ESTAR EN EL ÁMBITO GLOBAL.
          */
-        function gapiLoaded() {
+        window.gapiLoaded = function() {
             gapi.load('client', initializeGapiClient);
         }
 
@@ -335,21 +336,22 @@
          */
         async function initializeGapiClient() {
             try {
-                await gapi.client.init({
+                gapiInstance = gapi; // Asignar la referencia global de gapi
+                await gapiInstance.client.init({
                     apiKey: GEMINI_API_KEY, // Aunque Gemini usa fetch, gapi.client.init lo necesita para Sheets
                     discoveryDocs: ["https://sheets.googleapis.com/$discovery/rest?version=v4"],
                     clientId: GOOGLE_CLIENT_ID,
                     scope: GOOGLE_SCOPES,
                 });
                 gapiInited = true;
-                auth2 = gapi.auth2.getAuthInstance(); // Obtener la instancia de autenticación
+                auth2 = gapiInstance.auth2.getAuthInstance(); // Obtener la instancia de autenticación
                 // Escuchar cambios en el estado de autenticación
                 auth2.isSignedIn.listen(updateSignInStatus);
                 updateSignInStatus(auth2.isSignedIn.get()); // Actualizar estado inicial
                 console.log('Google API client initialized.');
             } catch (error) {
                 console.error('Error initializing Google API client:', error);
-                showError(errorWelcome, 'Error al inicializar la API de Google. Revisa tu Client ID y conexión.');
+                showError(errorWelcome, 'Error al inicialitzar la API de Google. Revisa el teu Client ID i connexió.');
             }
         }
 
@@ -367,7 +369,10 @@
                 startButton.disabled = true;
                 // Intentar autenticar de forma silenciosa o mostrar botón de autenticación
                 try {
-                    await auth2.signIn(); // Intenta iniciar sesión automáticamente
+                    // Solo intentar signIn si no estamos ya en un intento de inicio de sesión
+                    if (!auth2.isSignedIn.get() && !auth2.currentUser.get().hasGrantedScopes(GOOGLE_SCOPES)) {
+                        await auth2.signIn(); // Intenta iniciar sesión automáticamente
+                    }
                 } catch (error) {
                     console.warn('Silent sign-in failed, user needs to click start button to authorize:', error);
                     authStatus.textContent = 'Clica "Començar" per autenticar-te i carregar dades.';
@@ -396,7 +401,7 @@
 
         /** Carga la lista de alumnos desde la hoja 'LlistaAlumnes'. */
         async function loadStudents() {
-            const response = await gapi.client.sheets.spreadsheets.values.get({
+            const response = await gapiInstance.client.sheets.spreadsheets.values.get({
                 spreadsheetId: SPREADSHEET_ID,
                 range: `${SHEET_NAMES.STUDENTS}!A:B`, // Asume Nom y Idioma en A y B
             });
@@ -415,7 +420,7 @@
 
         /** Carga el vocabulario desde la hoja 'VocabulariTIC'. */
         async function loadVocabulary() {
-            const response = await gapi.client.sheets.spreadsheets.values.get({
+            const response = await gapiInstance.client.sheets.spreadsheets.values.get({
                 spreadsheetId: SPREADSHEET_ID,
                 range: `${SHEET_NAMES.VOCABULARY}!A:D`, // Asume Paraula, Competència, Tema, Definició
             });
@@ -437,7 +442,7 @@
         /** Carga el tema diario desde la hoja 'ContingutsDiari' para la fecha actual. */
         async function loadDailyTopic() {
             const today = getTodayDateFormatted();
-            const response = await gapi.client.sheets.spreadsheets.values.get({
+            const response = await gapiInstance.client.sheets.spreadsheets.values.get({
                 spreadsheetId: SPREADSHEET_ID,
                 range: `${SHEET_NAMES.DAILY_TOPIC}!A:C`, // Asume Data, Títol, Descripció
             });
@@ -803,7 +808,7 @@
                 values: values
             };
 
-            await gapi.client.sheets.spreadsheets.values.append({
+            await gapiInstance.client.sheets.spreadsheets.values.append({
                 spreadsheetId: SPREADSHEET_ID,
                 range: `${SHEET_NAMES.NOTES}!A:E`, // Columnas DataAvaluacio, NomAlumne, NotaVocabulari, NotaTema, Feedback
                 valueInputOption: 'USER_ENTERED',
@@ -915,7 +920,7 @@
          */
         async function generateTopicQuestions(topicTitle, topicDesc, studentLang) {
             const prompt = `Ets un professor d'informàtica que prepara preguntes senzilles per a alumnes que estan aprenent català. El tema d'avui és "${topicTitle}" amb la següent descripció: "${topicDesc}".
-            Genera 5 preguntes senzilles en català sobre aquest tema. Per a cada pregunta, proporciona també la resposta correcta esperada. Les preguntes poden ser de resposta lliure o de múltiple elecció (amb 3 opcions incorrectes i 1 correcta). El llenguatge ha de ser molt bàsic i adaptat al nivell d'un principiant en català.
+            Genera 5 preguntes senzilles en català sobre aquest tema. Per a cada pregunta, proporciona també la resposta correcta esperada. Les preguntes poden ser de resposta lliure o de múltiple elecció (con 3 opcions incorrectes y 1 correcta). El llenguatge ha de ser molt bàsic i adaptat al nivell d'un principiant en català.
 
             Format de la resposta (JSON - array de preguntes):
             [
