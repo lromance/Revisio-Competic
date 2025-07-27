@@ -186,10 +186,6 @@
         </div>
     </div>
 
-    <!-- Carga de la librería cliente de Google APIs -->
-    <!-- El callback 'gapi.load' se ejecuta directamente cuando el script se carga -->
-    <script async defer src="https://apis.google.com/js/api.js" onload="this.onload=function(){};gapi.load('client', initializeGapiClient)"></script>
-
     <script>
         console.log('Script principal: Inicio de ejecución del script principal.');
         // --- CONFIGURACIÓN DE LA APLICACIÓN ---
@@ -327,8 +323,9 @@
         /**
          * Inicializa el cliente de la API de Google.
          * Configura las credenciales y el descubrimiento de la API de Sheets.
+         * Esta función ahora es global.
          */
-        async function initializeGapiClient() {
+        window.initializeGapiClient = async function() {
             console.log('initializeGapiClient() iniciado.');
             try {
                 gapiInstance = gapi; // Asignar la referencia global de gapi
