@@ -321,6 +321,15 @@
         }
 
         /**
+         * Callback global para cuando la librería gapi.js se carga.
+         * Es el punto de entrada para cargar el cliente de la API de Google.
+         */
+        window.handleClientLoad = function() {
+            console.log('handleClientLoad() llamado. Cargando cliente de gapi...');
+            gapi.load('client', initializeGapiClient);
+        }
+
+        /**
          * Inicializa el cliente de la API de Google.
          * Configura las credenciales y el descubrimiento de la API de Sheets.
          * Esta función ahora es global.
@@ -1063,5 +1072,8 @@
             // La carga de datos inicial se dispara después de la autenticación exitosa.
         });
     </script>
+    <!-- Carga de la librería cliente de Google APIs -->
+    <!-- La librería gapi.js buscará automáticamente window.handleClientLoad cuando esté lista. -->
+    <script async defer src="https://apis.google.com/js/api.js?onload=handleClientLoad"></script>
 </body>
 </html>
