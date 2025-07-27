@@ -374,7 +374,7 @@
         }
 
         /**
-         * Inicializa el cliente de token de Google Identity Services (GSI).
+         * Inicializa el cliente de token de Google Identity Services (GSI.
          * Esta función ahora se llama desde el onload del script GSI.
          */
         function initializeGsiTokenClient() {
@@ -937,7 +937,8 @@
                 generationConfig: generationConfig
             };
 
-            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${GEMINI_API_KEY}`;
+            // CAMBIO CLAVE: Usar gemini-2.0-flash en lugar de gemini-pro
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`;
             // Para modelos de visión: models/gemini-pro-vision
 
             const response = await fetch(apiUrl, {
