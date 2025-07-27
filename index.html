@@ -4,6 +4,17 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Asistent TIC - CFA LA PAU</title>
+    <!-- Política de Seguridad de Contenido (CSP) para permitir scripts de Google -->
+    <!-- Esto intenta solucionar el error "Refused to load the script ... because it violates the following Content Security Policy" -->
+    <meta http-equiv="Content-Security-Policy" content="
+        default-src 'self';
+        script-src 'self' https://apis.google.com https://accounts.google.com https://www.gstatic.com 'unsafe-inline' 'unsafe-eval';
+        frame-src https://accounts.google.com;
+        connect-src 'self' https://sheets.googleapis.com https://www.googleapis.com https://accounts.google.com;
+        img-src 'self' data: https://www.gstatic.com;
+        style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
+        font-src 'self' data: https://fonts.gstatic.com;
+    ">
     <!-- Carga de Tailwind CSS para un diseño moderno y responsive -->
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
@@ -341,11 +352,11 @@
 
                 // Escuchar cambios en el estado de autenticación
                 auth2.isSignedIn.listen(updateSignInStatus);
-                updateSignInStatus(auth2.isSignedIn.get()); // Actualizar estado inicial
+                await updateSignInStatus(auth2.isSignedIn.get()); // Actualizar estado inicial
                 console.log('Google Auth client initialized successfully.');
             } catch (error) {
                 console.error('Error initializing Google Auth client:', error);
-                showError(errorWelcome, 'Error al inicialitzar l\'autenticació de Google. Revisa el teu Client ID i connexió. Detalles: ' + (error.details || error.message));
+                showError(errorWelcome, 'Error al inicialitzar l\'autenticació de Google. Revisa el teu Client ID i connexió. Detalles: ' + (error.details || error.message || JSON.stringify(error)));
             }
         }
 
@@ -375,7 +386,7 @@
                     }
                 } catch (error) {
                     console.warn('Silent sign-in failed, user needs to click start button to authorize:', error);
-                    authStatus.textContent = 'Clica "Començar" per autenticar-te i carregar dades.';
+                    showError(errorWelcome, 'No s\'ha pogut autenticar automàticament. Clica "Començar" per iniciar sessió.');
                 }
             }
         }
@@ -443,7 +454,8 @@
         /** Carga la lista de alumnos desde la hoja 'LlistaAlumnes' usando fetch. */
         async function loadStudents() {
             console.log('loadStudents() iniciado. Intentando obtener datos de LlistaAlumnes...');
-            const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${SHEET_NAMES.STUDENTS}!A:B?key=${GEMINI_API_KEY}`;
+            // La API Key no es necesaria para las llamadas con token de acceso OAuth
+            const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${SHEET_NAMES.STUDENTS}!A:B`;
             const response = await callSheetsApi(url);
             const values = response.values;
             if (values && values.length > 1) { // Ignora la fila de cabecera
@@ -461,7 +473,7 @@
         /** Carga el vocabulario desde la hoja 'VocabulariTIC' usando fetch. */
         async function loadVocabulary() {
             console.log('loadVocabulary() iniciado. Intentando obtener datos de VocabulariTIC...');
-            const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${SHEET_NAMES.VOCABULARY}!A:D?key=${GEMINI_API_KEY}`;
+            const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${SHEET_NAMES.VOCABULARY}!A:D`;
             const response = await callSheetsApi(url);
             const values = response.values;
             if (values && values.length > 1) {
@@ -482,7 +494,7 @@
         async function loadDailyTopic() {
             console.log('loadDailyTopic() iniciado. Intentando obtener datos de ContingutsDiari...');
             const today = getTodayDateFormatted();
-            const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${SHEET_NAMES.DAILY_TOPIC}!A:C?key=${GEMINI_API_KEY}`;
+            const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${SHEET_NAMES.DAILY_TOPIC}!A:C`;
             const response = await callSheetsApi(url);
             const values = response.values;
             if (values && values.length > 1) {
@@ -880,7 +892,8 @@
             const body = {
                 values: values
             };
-            const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${SHEET_NAMES.NOTES}!A:E:append?valueInputOption=USER_ENTERED&key=${GEMINI_API_KEY}`;
+            // La API Key no es necesaria para las llamadas con token de acceso OAuth
+            const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${SHEET_NAMES.NOTES}!A:E:append?valueInputOption=USER_ENTERED`;
             await callSheetsApi(url, 'POST', body);
             console.log('Resultados guardados en Google Sheets.');
         }
