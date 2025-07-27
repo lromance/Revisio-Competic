@@ -1,23 +1,4 @@
-async function testConnection() {
-            clearResults();
-            showLoading(true);
-            
-            const apiKey = document.getElementById('apiKeyInput').value.trim();
-            
-            if (!apiKey) {
-                addResult('❌ Por favor, introduce tu API Key de Google Sheets', 'error');
-                showLoading(false);
-                return;
-            }
-            
-            // Validar formato básico de API Key
-            if (!apiKey.startsWith('AIza') || apiKey.length < 35) {
-                addResult('⚠️ El formato de la API Key parece incorrecto. Debería empezar con "AIza" y tener ~39 caracteres', 'warning');
-            }
-            
-            try {
-                // Paso 1: Cargar Google API
-       <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
@@ -91,6 +72,7 @@ async function testConnection() {
         </div>
         
         <button onclick="testConnection()">🧪 Probar Conexión</button>
+        <button onclick="testDirectAPI()">⚡ Test Directo (sin gapi.js)</button>
         <button onclick="testAuth()">🔐 Probar Autenticación</button>
         <button onclick="clearResults()">🗑️ Limpiar Resultados</button>
         
@@ -223,59 +205,208 @@ async function testConnection() {
                 return;
             }
             
+            // Validar formato básico de API Key
+            if (!apiKey.startsWith('AIza') || apiKey.length < 35) {
+                addResult('⚠️ El formato de la API Key parece incorrecto. Debería empezar con "AIza" y tener ~39 caracteres', 'warning');
+            }
+            
             try {
                 // Paso 1: Cargar Google API
                 addResult('🔄 Paso 1: Cargando Google API...', 'info');
                 await loadGoogleAPI();
                 
-                // Paso 2: Inicializar cliente
+                // Paso 2: Inicializar cliente con más logging
                 addResult('🔄 Paso 2: Inicializando cliente Google Sheets...', 'info');
+                addResult(`🔑 Usando API Key: ${apiKey.substring(0, 8)}...${apiKey.substring(apiKey.length - 4)}`, 'info');
+                
+                const initStart = Date.now();
                 await gapi.client.init({
                     apiKey: apiKey,
                     discoveryDocs: ["https://sheets.googleapis.com/$discovery/rest?version=v4"],
                 });
-                addResult('✅ Cliente Google Sheets inicializado', 'success');
+                const initTime = Date.now() - initStart;
+                addResult(`✅ Cliente Google Sheets inicializado (${initTime}ms)`, 'success');
                 
-                // Paso 3: Probar acceso a cada hoja
+                // Paso 3: Test simple primero
+                addResult('🔄 Paso 3: Probando acceso básico al spreadsheet...', 'info');
+                const testStart = Date.now();
+                
+                try {
+                    const basicResponse = await gapi.client.sheets.spreadsheets.get({
+                        spreadsheetId: SPREADSHEET_ID,
+                    });
+                    const testTime = Date.now() - testStart;
+                    addResult(`✅ Spreadsheet accesible (${testTime}ms)`, 'success');
+                    addResult(`📊 Título: "${basicResponse.result.properties.title}"`, 'info');
+                    
+                    const sheetNames = basicResponse.result.sheets.map(sheet => sheet.properties.title);
+                    addResult(`📋 Hojas encontradas: ${sheetNames.join(', ')}`, 'info');
+                    
+                    // Verificar hojas requeridas
+                    const missingSheets = Object.values(SHEET_NAMES).filter(name => !sheetNames.includes(name));
+                    if (missingSheets.length > 0) {
+                        addResult(`⚠️ Hojas faltantes: ${missingSheets.join(', ')}`, 'warning');
+                    }
+                    
+                } catch (error) {
+                    const testTime = Date.now() - testStart;
+                    addResult(`❌ Error accediendo al spreadsheet (${testTime}ms): ${error.message}`, 'error');
+                    
+                    if (error.status === 403) {
+                        addResult('💡 Error 403: Tu API Key no tiene permisos para Google Sheets API', 'warning');
+                        addResult('🔧 Solución: Ve a Google Cloud Console → Credenciales → Edita tu API Key → Restricciones de API → Selecciona "Google Sheets API"', 'info');
+                    } else if (error.status === 404) {
+                        addResult('💡 Error 404: El spreadsheet no existe o no es accesible', 'warning');
+                        addResult('🔧 Solución: Verifica que el ID del spreadsheet sea correcto y que sea público', 'info');
+                    } else if (error.status === 400) {
+                        addResult('💡 Error 400: API Key inválida', 'warning');
+                        addResult('🔧 Solución: Verifica que hayas copiado correctamente la API Key', 'info');
+                    }
+                    
+                    showLoading(false);
+                    return;
+                }
+                
+                // Paso 4: Probar acceso a cada hoja específica
                 for (const [sheetType, sheetName] of Object.entries(SHEET_NAMES)) {
+                    if (!basicResponse.result.sheets.find(s => s.properties.title === sheetName)) {
+                        addResult(`⏭️ Saltando hoja "${sheetName}" (no existe)`, 'warning');
+                        continue;
+                    }
+                    
                     try {
-                        addResult(`🔄 Probando acceso a hoja: ${sheetName}...`, 'info');
+                        addResult(`🔄 Probando datos de: ${sheetName}...`, 'info');
+                        const dataStart = Date.now();
+                        
                         const response = await gapi.client.sheets.spreadsheets.values.get({
                             spreadsheetId: SPREADSHEET_ID,
-                            range: `${sheetName}!A1:Z10`, // Primeras 10 filas de todas las columnas
+                            range: `${sheetName}!A1:Z10`,
                         });
                         
+                        const dataTime = Date.now() - dataStart;
                         const values = response.result.values;
+                        
                         if (values && values.length > 0) {
-                            addResult(`✅ Hoja "${sheetName}": ${values.length} filas encontradas`, 'success');
-                            addResult(`📋 Encabezados: ${values[0].join(', ')}`, 'info');
+                            addResult(`✅ "${sheetName}": ${values.length} filas (${dataTime}ms)`, 'success');
+                            addResult(`📋 Columnas: ${values[0].join(', ')}`, 'info');
+                            
+                            if (values.length > 1) {
+                                addResult(`📝 Ejemplo fila 2: ${values[1].slice(0, 3).join(' | ')}${values[1].length > 3 ? '...' : ''}`, 'info');
+                            }
                         } else {
-                            addResult(`⚠️ Hoja "${sheetName}": Accesible pero vacía`, 'warning');
+                            addResult(`⚠️ "${sheetName}": Accesible pero sin datos (${dataTime}ms)`, 'warning');
                         }
+                        
                     } catch (error) {
-                        addResult(`❌ Error accediendo a hoja "${sheetName}": ${error.message}`, 'error');
-                        if (error.status === 404) {
-                            addResult(`💡 Sugerencia: La hoja "${sheetName}" no existe. Verifica el nombre.`, 'warning');
-                        } else if (error.status === 403) {
-                            addResult(`💡 Sugerencia: Sin permisos para "${sheetName}". Verifica que la hoja sea pública o que tengas acceso.`, 'warning');
-                        }
+                        addResult(`❌ Error en "${sheetName}": ${error.message}`, 'error');
                     }
                 }
                 
-                addResult('🎉 Test de conexión completado', 'success');
+                addResult('🎉 Test de conexión completado exitosamente', 'success');
                 
             } catch (error) {
-                addResult('❌ Error durante el test: ' + error.message, 'error');
-                if (error.message.includes('403')) {
-                    addResult('💡 Error 403: Verifica que tu API Key tenga permisos para Google Sheets API', 'warning');
-                } else if (error.message.includes('400')) {
-                    addResult('💡 Error 400: Verifica que tu API Key sea válida', 'warning');
-                }
+                addResult('❌ Error general durante el test: ' + error.message, 'error');
+                console.error('Error completo:', error);
+                
+                // Información adicional para debugging
+                addResult('🔍 Información de debugging:', 'info');
+                addResult(`- Navigator: ${navigator.userAgent}`, 'info');
+                addResult(`- URL actual: ${window.location.href}`, 'info');
+                addResult(`- Protocolo: ${window.location.protocol}`, 'info');
             }
             
             showLoading(false);
         }
 
+        // Test directo usando fetch (alternativa a gapi.js)
+        async function testDirectAPI() {
+            clearResults();
+            showLoading(true);
+            
+            const apiKey = document.getElementById('apiKeyInput').value.trim();
+            
+            if (!apiKey) {
+                addResult('❌ Por favor, introduce tu API Key de Google Sheets', 'error');
+                showLoading(false);
+                return;
+            }
+            
+            try {
+                addResult('🚀 Usando método directo con fetch() - evitando gapi.js', 'info');
+                
+                // Test 1: Información básica del spreadsheet
+                addResult('🔄 Obteniendo información del spreadsheet...', 'info');
+                const metadataUrl = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}?key=${apiKey}`;
+                
+                const metadataResponse = await fetch(metadataUrl);
+                
+                if (!metadataResponse.ok) {
+                    const errorData = await metadataResponse.json();
+                    throw new Error(`HTTP ${metadataResponse.status}: ${errorData.error?.message || 'Error desconocido'}`);
+                }
+                
+                const metadata = await metadataResponse.json();
+                addResult('✅ Spreadsheet accesible', 'success');
+                addResult(`📊 Título: "${metadata.properties.title}"`, 'info');
+                
+                const sheetNames = metadata.sheets.map(sheet => sheet.properties.title);
+                addResult(`📋 Hojas: ${sheetNames.join(', ')}`, 'info');
+                
+                // Test 2: Datos de cada hoja
+                for (const [sheetType, sheetName] of Object.entries(SHEET_NAMES)) {
+                    if (!sheetNames.includes(sheetName)) {
+                        addResult(`⏭️ Saltando "${sheetName}" (no existe)`, 'warning');
+                        continue;
+                    }
+                    
+                    try {
+                        addResult(`🔄 Leyendo datos de: ${sheetName}...`, 'info');
+                        const dataUrl = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${encodeURIComponent(sheetName)}!A1:Z10?key=${apiKey}`;
+                        
+                        const dataResponse = await fetch(dataUrl);
+                        
+                        if (!dataResponse.ok) {
+                            const errorData = await dataResponse.json();
+                            throw new Error(`HTTP ${dataResponse.status}: ${errorData.error?.message || 'Error desconocido'}`);
+                        }
+                        
+                        const data = await dataResponse.json();
+                        const values = data.values || [];
+                        
+                        if (values.length > 0) {
+                            addResult(`✅ "${sheetName}": ${values.length} filas`, 'success');
+                            addResult(`📋 Columnas: ${values[0].join(', ')}`, 'info');
+                            
+                            if (values.length > 1) {
+                                addResult(`📝 Ejemplo: ${values[1].slice(0, 3).join(' | ')}`, 'info');
+                            }
+                        } else {
+                            addResult(`⚠️ "${sheetName}": Sin datos`, 'warning');
+                        }
+                        
+                    } catch (error) {
+                        addResult(`❌ Error en "${sheetName}": ${error.message}`, 'error');
+                    }
+                }
+                
+                addResult('🎉 Test directo completado exitosamente', 'success');
+                addResult('💡 Si este test funciona, el problema está en gapi.js. Usa fetch() en lugar de gapi en tu app.', 'info');
+                
+            } catch (error) {
+                addResult('❌ Error en test directo: ' + error.message, 'error');
+                
+                if (error.message.includes('403')) {
+                    addResult('💡 Error 403: API Key sin permisos o restricciones mal configuradas', 'warning');
+                } else if (error.message.includes('400')) {
+                    addResult('💡 Error 400: API Key inválida', 'warning');
+                } else if (error.message.includes('404')) {
+                    addResult('💡 Error 404: Spreadsheet no encontrado o sin permisos', 'warning');
+                }
+            }
+            
+            showLoading(false);
+        }
+        
         async function testAuth() {
             clearResults();
             showLoading(true);
@@ -335,6 +466,7 @@ async function testConnection() {
         // Auto-cargar Google API al cargar la página
         window.addEventListener('load', () => {
             addResult('🚀 Página cargada. Listo para probar la conexión.', 'info');
+            updateConfigStatus(); // Actualizar el estado inicial de la API Key
         });
     </script>
 </body>
