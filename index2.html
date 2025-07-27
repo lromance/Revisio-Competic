@@ -1,0 +1,1095 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Asistent TIC - CFA LA PAU</title>
+    <!-- Política de Seguridad de Contenido (CSP) - Versión corregida y explícita -->
+    <!-- Esto intenta asegurar que todos los recursos necesarios sean permitidos. -->
+    <meta http-equiv="Content-Security-Policy" content="
+        default-src 'self';
+        script-src 'self' 'unsafe-inline' 'unsafe-eval' https://accounts.google.com https://www.gstatic.com https://cdn.tailwindcss.com https://www.google.com;
+        style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.tailwindcss.com;
+        img-src 'self' data: https://www.gstatic.com https://www.google.com;
+        connect-src 'self' https://sheets.googleapis.com https://www.googleapis.com https://accounts.google.com https://www.google.com https://generativelanguage.googleapis.com;
+        frame-src https://accounts.google.com https://www.google.com;
+        font-src 'self' data: https://fonts.gstatic.com;
+    ">
+    <!-- Carga de Tailwind CSS para un diseño moderno y responsive -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Configuración de la fuente Inter y colores base */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #e0f2f7; /* Un turquesa muy claro para el fondo */
+            color: #333;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            background-color: #ffffff;
+            border-radius: 1.5rem; /* Bordes redondeados */
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            padding: 2rem;
+            max-width: 800px;
+            width: 100%;
+            text-align: center;
+        }
+        h1, h2 {
+            color: #00796b; /* Un turquesa oscuro para los títulos */
+            margin-bottom: 1rem;
+        }
+        /* Estilos base para los botones */
+        button {
+            background-color: #00bcd4; /* Turquesa brillante para botones */
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.2s ease;
+            cursor: pointer;
+            font-weight: bold;
+            border: none;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Sombra suave */
+        }
+        button:hover {
+            background-color: #0097a7; /* Turquesa más oscuro al pasar el ratón */
+            transform: translateY(-2px); /* Efecto de elevación */
+            box-shadow: 0 6px 10px rgba(0, 0, 0, 0.15); /* Sombra más pronunciada */
+        }
+        button:active {
+            transform: translateY(0); /* Vuelve a su posición original al hacer clic */
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Sombra más pequeña al hacer clic */
+        }
+        /* Estilos específicos para el botón de enviar respuesta y ahora también para el de empezar */
+        #startButton,
+        #submitVocabButton,
+        #submitTopicButton {
+            background-color: #81C784; /* Verde suave (Material Design light green 300) */
+            padding: 1rem 2rem; /* Más grande */
+            font-size: 1.125rem; /* Texto más grande */
+            border-radius: 0.75rem; /* Más redondeado */
+            box-shadow: 0 6px 10px rgba(0, 0, 0, 0.2); /* Sombra más pronunciada */
+            margin-top: 1.5rem; /* Espacio superior */
+        }
+        #startButton:hover,
+        #submitVocabButton:hover,
+        #submitTopicButton:hover {
+            background-color: #66BB6A; /* Verde ligeramente más oscuro al pasar el ratón */
+            transform: translateY(-3px); /* Mayor efecto de elevación */
+            box-shadow: 0 8px 12px rgba(0, 0, 0, 0.25); /* Sombra aún más pronunciada */
+        }
+        #startButton:active,
+        #submitVocabButton:active,
+        #submitTopicButton:active {
+            transform: translateY(0);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.15);
+        }
+
+        select, input[type="text"] {
+            padding: 0.75rem;
+            border-radius: 0.5rem;
+            border: 1px solid #b2ebf2; /* Borde turquesa claro */
+            width: calc(100% - 1.5rem); /* Ajuste para padding */
+            margin-bottom: 1rem;
+            background-color: #e0f7fa; /* Fondo turquesa muy claro */
+        }
+        .section {
+            display: none; /* Las secciones se mostrarán/ocultarán con JS */
+        }
+        .loading-spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #00bcd4;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .error-message {
+            color: #d32f2f; /* Rojo para mensajes de error */
+            background-color: #ffebee;
+            border: 1px solid #ef9a9a;
+            padding: 10px;
+            border-radius: 0.5rem;
+            margin-top: 1rem;
+        }
+        .feedback-box {
+            background-color: #e0f7fa;
+            border: 1px solid #b2ebf2;
+            padding: 1rem;
+            border-radius: 0.75rem;
+            margin-top: 1.5rem;
+            text-align: left;
+        }
+        .question-area {
+            background-color: #f0f8ff; /* Azul muy claro para el área de preguntas */
+            border: 1px solid #cfe9ff;
+            padding: 1.5rem;
+            border-radius: 0.75rem;
+            margin-bottom: 1.5rem;
+            text-align: left;
+        }
+        .option-button {
+            background-color: #e0f7fa;
+            color: #00796b;
+            border: 1px solid #b2ebf2;
+            margin: 0.5rem;
+            padding: 0.75rem 1.25rem;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            width: calc(50% - 1rem); /* Dos columnas */
+            display: inline-block;
+            text-align: center;
+        }
+        .option-button:hover {
+            background-color: #b2ebf2;
+            color: #004d40;
+        }
+        .option-button.selected {
+            background-color: #00bcd4;
+            color: white;
+            border-color: #0097a7;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Sección de bienvenida y configuración inicial -->
+        <div id="welcomeSection" class="section">
+            <h1 class="text-3xl font-bold mb-4">Asistent TIC</h1>
+            <p class="text-lg mb-2">CFA LA PAU - Competic / MEIJN</p>
+            <p class="mb-4">Benvingut/da! Selecciona el teu nom i idioma per començar.</p>
+
+            <label for="studentSelect" class="block text-left mb-1">Selecciona el teu nom:</label>
+            <select id="studentSelect" class="w-full mb-4"></select>
+
+            <label for="languageSelect" class="block text-left mb-1">Selecciona el teu idioma:</label>
+            <select id="languageSelect" class="w-full mb-6">
+                <option value="ca">Català</option>
+                <option value="es">Castellà</option>
+                <option value="en">English</option>
+                <!-- Se pueden añadir más idiomas si es necesario -->
+            </select>
+
+            <button id="startButton">Començar</button>
+            <div id="authStatus" class="mt-4 text-sm text-gray-600"></div>
+            <div id="loadingWelcome" class="loading-spinner hidden"></div>
+            <div id="errorWelcome" class="error-message hidden"></div>
+        </div>
+
+        <!-- Sección de evaluación de vocabulario -->
+        <div id="vocabularySection" class="section">
+            <h2 class="text-2xl font-bold mb-4">Avaluació de Vocabulari</h2>
+            <div class="question-area">
+                <p id="vocabQuestionText" class="text-lg mb-4">Carregant pregunta...</p>
+                <input type="text" id="vocabAnswerInput" placeholder="Escriu la teva resposta aquí..." class="w-full hidden">
+                <div id="vocabOptionsContainer" class="grid grid-cols-2 gap-4">
+                    <!-- Opciones de respuesta se cargarán aquí -->
+                </div>
+            </div>
+            <button id="submitVocabButton">Enviar Resposta</button>
+            <div id="loadingVocab" class="loading-spinner hidden"></div>
+            <div id="errorVocab" class="error-message hidden"></div>
+        </div>
+
+        <!-- Sección de evaluación del tema diario -->
+        <div id="topicSection" class="section">
+            <h2 class="text-2xl font-bold mb-4">Avaluació del Tema del Dia</h2>
+            <div class="question-area">
+                <p id="topicQuestionText" class="text-lg mb-4">Carregant pregunta...</p>
+                <input type="text" id="topicAnswerInput" placeholder="Escriu la teva resposta aquí..." class="w-full hidden">
+                <div id="topicOptionsContainer" class="grid grid-cols-2 gap-4">
+                    <!-- Opciones de respuesta se cargarán aquí -->
+                </div>
+            </div>
+            <button id="submitTopicButton">Enviar Resposta</button>
+            <div id="loadingTopic" class="loading-spinner hidden"></div>
+            <div id="errorTopic" class="error-message hidden"></div>
+        </div>
+
+        <!-- Sección de resultados -->
+        <div id="resultsSection" class="section">
+            <h2 class="text-2xl font-bold mb-4">Resultats de l'Avaluació</h2>
+            <p class="text-lg mb-2">Nota de Vocabulari: <span id="finalVocabScore" class="font-bold">--</span> / 10</p>
+            <p class="text-lg mb-2">Nota del Tema: <span id="finalTopicScore" class="font-bold">--</span> / 10</p>
+            <div class="feedback-box">
+                <h3 class="text-xl font-semibold mb-2">Feedback de Gemini:</h3>
+                <p id="geminiFeedback">Generant feedback...</p>
+            </div>
+            <div id="loadingResults" class="loading-spinner hidden"></div>
+            <div id="errorResults" class="error-message hidden"></div>
+            <p class="mt-4 text-sm text-gray-600" id="saveStatus">Guardant resultats...</p>
+        </div>
+    </div>
+
+    <script>
+        // --- CONFIGURACIÓN DE LA APLICACIÓN ---
+        // IMPORTANTE: Reemplaza estos placeholders con tus valores reales.
+        // Consulta las instrucciones para obtenerlos.
+
+        // Tu API Key de Gemini (Google Generative Language API)
+        // ADVERTENCIA: Exponer esta clave en el frontend no es seguro para producción.
+        // Para una aplicación real, usa un backend para hacer las llamadas a Gemini.
+        const GEMINI_API_KEY = 'AIzaSyDJRnXQHMq9dk2xrfwy5v89swUyo8MWdyE';
+
+        // Tu Client ID de OAuth 2.0 (Tipo "Aplicación web")
+        const GOOGLE_CLIENT_ID = '267258615325-q44v579iv43lrbvrcjv5old76muvv5h8.apps.googleusercontent.com';
+
+        // El ID de tu hoja de cálculo de Google Sheets
+        const SPREADSHEET_ID = '1QUiBsT60icEUKDzsUteIp-nPDTVhCeKda_oCjH3WnEQ';
+
+        // Scopes de autorización necesarios para acceder a Google Sheets
+        const GOOGLE_SCOPES = 'https://www.googleapis.com/auth/spreadsheets';
+
+        // Nombres de las hojas dentro de tu documento de Google Sheets
+        const SHEET_NAMES = {
+            VOCABULARY: 'VocabulariTIC',
+            DAILY_TOPIC: 'ContingutsDiari',
+            STUDENTS: 'LlistaAlumnes',
+            NOTES: 'NotesAlumnes'
+        };
+
+        // --- VARIABLES GLOBALES DE LA APLICACIÓN ---
+        let tokenClient; // Cliente de token de GSI
+        let accessToken = null; // Token de acceso para las llamadas a la API de Sheets
+
+        let studentsData = []; // Datos de la hoja LlistaAlumnes
+        let vocabularyData = []; // Datos de la hoja VocabulariTIC
+        let dailyTopicData = null; // Datos del tema del día
+
+        let currentStudent = null;
+        let currentLanguage = 'ca'; // Idioma por defecto: catalán
+
+        let vocabularyQuestions = []; // Preguntas generadas para vocabulario
+        let currentVocabQuestionIndex = 0;
+        let studentVocabAnswers = []; // Respuestas del alumno para vocabulario
+        let vocabCorrectAnswers = 0;
+
+        let topicQuestions = []; // Preguntas generadas para el tema
+        let currentTopicQuestionIndex = 0;
+        let studentTopicAnswers = []; // Respuestas del alumno para el tema
+        let topicCorrectAnswers = 0;
+
+        // --- REFERENCIAS A ELEMENTOS DEL DOM ---
+        const welcomeSection = document.getElementById('welcomeSection');
+        const vocabularySection = document.getElementById('vocabularySection');
+        const topicSection = document.getElementById('topicSection');
+        const resultsSection = document.getElementById('resultsSection');
+
+        const studentSelect = document.getElementById('studentSelect');
+        const languageSelect = document.getElementById('languageSelect');
+        const startButton = document.getElementById('startButton');
+        const authStatus = document.getElementById('authStatus');
+        const loadingWelcome = document.getElementById('loadingWelcome');
+        const errorWelcome = document.getElementById('errorWelcome');
+
+        const vocabQuestionText = document.getElementById('vocabQuestionText');
+        const vocabAnswerInput = document.getElementById('vocabAnswerInput');
+        const vocabOptionsContainer = document.getElementById('vocabOptionsContainer');
+        const submitVocabButton = document.getElementById('submitVocabButton');
+        const loadingVocab = document.getElementById('loadingVocab');
+        const errorVocab = document.getElementById('errorVocab');
+
+        const topicQuestionText = document.getElementById('topicQuestionText');
+        const topicAnswerInput = document.getElementById('topicAnswerInput');
+        const topicOptionsContainer = document.getElementById('topicOptionsContainer');
+        const submitTopicButton = document.getElementById('submitTopicButton');
+        const loadingTopic = document.getElementById('loadingTopic');
+        const errorTopic = document.getElementById('errorTopic');
+
+        const finalVocabScore = document.getElementById('finalVocabScore');
+        const finalTopicScore = document.getElementById('finalTopicScore');
+        const geminiFeedback = document.getElementById('geminiFeedback');
+        const loadingResults = document.getElementById('loadingResults');
+        const errorResults = document.getElementById('errorResults');
+        const saveStatus = document.getElementById('saveStatus');
+
+        // --- FUNCIONES DE UTILIDAD ---
+
+        /** Muestra una sección específica de la aplicación y oculta las demás. */
+        function showSection(sectionId) {
+            const sections = [welcomeSection, vocabularySection, topicSection, resultsSection];
+            sections.forEach(section => {
+                if (section.id === sectionId) {
+                    section.style.display = 'block';
+                } else {
+                    section.style.display = 'none';
+                }
+            });
+        }
+
+        /** Muestra/oculta un spinner de carga. */
+        function showLoading(element, show) {
+            if (show) {
+                element.classList.remove('hidden');
+            } else {
+                element.classList.add('hidden');
+            }
+        }
+
+        /** Muestra un mensaje de error. */
+        function showError(element, message) {
+            element.textContent = message;
+            element.classList.remove('hidden');
+        }
+
+        /** Oculta un mensaje de error. */
+        function hideError(element) {
+            element.classList.add('hidden');
+            element.textContent = '';
+        }
+
+        /** Formatea una fecha a DD/MM/AAAA */
+        function formatDate(date) {
+            const day = String(date.getDate()).padStart(2, '0');
+            const month = String(date.getMonth() + 1).padStart(2, '0'); // Meses son 0-indexados
+            const year = date.getFullYear();
+            return `${day}/${month}/${year}`;
+        }
+
+        /** Obtiene la fecha actual en formato DD/MM/AAAA */
+        function getTodayDateFormatted() {
+            return formatDate(new Date());
+        }
+
+        /**
+         * Callback para el cliente de token de GSI.
+         * Se llama cuando el token de acceso está disponible o hay un error.
+         * @param {object} response La respuesta del token.
+         */
+        function tokenClientCallback(response) {
+            if (response.error) {
+                if (response.error === 'interaction_required') {
+                    showError(errorWelcome, 'Autenticación necesaria. Haz clic en "Començar" para iniciar sesión con Google.');
+                } else {
+                    showError(errorWelcome, 'Error al autenticar. Haz clic en "Començar" para reintentar.');
+                }
+                accessToken = null;
+                authStatus.textContent = 'Autenticación fallida.';
+                startButton.disabled = false; // Re-habilitar botón para reintento manual
+            } else {
+                accessToken = response.access_token;
+                authStatus.textContent = 'Autenticado con Google Sheets.';
+                startButton.disabled = false;
+
+                // Load initial data, then proceed to evaluation if student selected
+                loadInitialData().then(() => {
+                    // Re-read selected student and language after data might have been loaded/reloaded
+                    currentStudent = studentSelect.value;
+                    currentLanguage = languageSelect.value;
+
+                    if (currentStudent && studentsData.length > 0 && vocabularyData.length > 0 && dailyTopicData !== null) {
+                        // Add a small delay for UX
+                        setTimeout(() => {
+                            startVocabularyEvaluation();
+                        }, 500); // 500ms delay
+                    }
+                }).catch(error => {
+                    showError(errorWelcome, 'Error al cargar los datos iniciales. Asegúrate de que las hojas existen y tienes permisos.');
+                });
+            }
+        }
+
+        /**
+         * Inicializa el cliente de token de Google Identity Services (GSI).
+         * Esta función ahora se llama desde el onload del script GSI.
+         */
+        function initializeGsiTokenClient() {
+            tokenClient = google.accounts.oauth2.initTokenClient({
+                client_id: GOOGLE_CLIENT_ID,
+                scope: GOOGLE_SCOPES,
+                callback: tokenClientCallback,
+            });
+            // Intentar autenticación silenciosa si es posible
+            if (tokenClient) {
+                tokenClient.requestAccessToken({ prompt: 'none' }); // Intento silencioso
+                authStatus.textContent = 'Intentando autenticación automática...';
+                startButton.disabled = true;
+            }
+        }
+
+        /**
+         * Callback global que se ejecuta cuando la librería GSI se ha cargado completamente.
+         * Es el punto de entrada para inicializar el cliente de token de GSI.
+         */
+        window.handleGsiClientLoad = function() {
+            initializeGsiTokenClient();
+        };
+
+        /**
+         * Inicia el flujo de autenticación de GSI cuando se hace clic en el botón.
+         */
+        startButton.addEventListener('click', async () => {
+            currentStudent = studentSelect.value;
+            currentLanguage = languageSelect.value;
+
+            if (!currentStudent) {
+                showError(errorWelcome, 'Por favor, selecciona tu nombre.');
+                return;
+            }
+            hideError(errorWelcome);
+
+            // Si ya tenemos un accessToken y los datos iniciales están cargados, procedemos directamente
+            if (accessToken && studentsData.length > 0 && vocabularyData.length > 0 && dailyTopicData !== null) {
+                startVocabularyEvaluation();
+            } else {
+                // Si no estamos autenticados o los datos no están cargados, iniciamos la autenticación GSI
+                if (tokenClient) {
+                    // Esto disparará tokenClientCallback, que luego llamará a loadInitialData,
+                    // y luego condicionalmente a startVocabularyEvaluation.
+                    tokenClient.requestAccessToken({ prompt: 'consent' });
+                    authStatus.textContent = 'Esperando tu autorización...';
+                    startButton.disabled = true;
+                } else {
+                    showError(errorWelcome, 'El cliente de autenticación de Google no se ha inicializado. Recarga la página.');
+                }
+            }
+        });
+
+        /**
+         * Realiza una llamada a la API de Google Sheets usando fetch.
+         * @param {string} url La URL de la API de Sheets.
+         * @param {string} method El método HTTP (GET, POST, PUT).
+         * @param {object} body El cuerpo de la solicitud (para POST/PUT).
+         * @returns {Promise<object>} La respuesta JSON de la API.
+         */
+        async function callSheetsApi(url, method = 'GET', body = null) {
+            if (!accessToken) {
+                return new Promise((resolve, reject) => {
+                    const originalCallback = tokenClient.callback; // Guardar el callback original
+                    tokenClient.callback = (response) => {
+                        tokenClient.callback = originalCallback; // Restaurar el callback original
+
+                        if (response.error) {
+                            reject(new Error('No hay token de acceso. Autenticación fallida.'));
+                        } else {
+                            accessToken = response.access_token;
+                            // Reintentar la llamada original con el nuevo token
+                            const headers = {
+                                'Authorization': `Bearer ${accessToken}`,
+                                'Content-Type': 'application/json'
+                            };
+                            const options = {
+                                method: method,
+                                headers: headers,
+                                body: body ? JSON.stringify(body) : null,
+                            };
+                            fetch(url, options).then(res => res.json()).then(resolve).catch(reject);
+                        }
+                    };
+                    tokenClient.requestAccessToken({ prompt: 'consent' }); // Forzar consentimiento para obtener nuevo token
+                });
+            }
+
+            const headers = {
+                'Authorization': `Bearer ${accessToken}`,
+                'Content-Type': 'application/json'
+            };
+
+            const options = {
+                method: method,
+                headers: headers,
+            };
+
+            if (body) {
+                options.body = JSON.stringify(body);
+            }
+
+            const response = await fetch(url, options);
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(`Error en la API de Sheets: ${response.status}.`);
+            }
+
+            return response.json();
+        }
+
+
+        /**
+         * Carga los datos iniciales (alumnos, vocabulario, tema diario) desde Google Sheets.
+         */
+        async function loadInitialData() {
+            showLoading(loadingWelcome, true);
+            hideError(errorWelcome);
+            try {
+                await loadStudents();
+                await loadVocabulary();
+                await loadDailyTopic();
+                populateStudentSelect();
+                showLoading(loadingWelcome, false);
+            } catch (error) {
+                showError(errorWelcome, 'Error al cargar los datos iniciales. Asegúrate de que las hojas existen y tienes permisos.');
+                showLoading(loadingWelcome, false);
+            }
+        }
+
+        /** Carga la lista de alumnos desde la hoja 'LlistaAlumnes' usando fetch. */
+        async function loadStudents() {
+            const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${SHEET_NAMES.STUDENTS}!A:B`;
+            const response = await callSheetsApi(url);
+            const values = response.values;
+            if (values && values.length > 1) { // Ignora la fila de cabecera
+                studentsData = values.slice(1).map(row => ({
+                    Nom: row[0],
+                    Idioma: row[1] || 'ca' // Valor por defecto si no hay idioma
+                }));
+            } else {
+                studentsData = [];
+            }
+        }
+
+        /** Carga el vocabulario desde la hoja 'VocabulariTIC' usando fetch. */
+        async function loadVocabulary() {
+            const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${SHEET_NAMES.VOCABULARY}!A:D`;
+            const response = await callSheetsApi(url);
+            const values = response.values;
+            if (values && values.length > 1) {
+                vocabularyData = values.slice(1).map(row => ({
+                    Paraula: row[0],
+                    Competencia: row[1],
+                    Tema: row[2],
+                    Definicio: row[3]
+                }));
+            } else {
+                vocabularyData = [];
+            }
+        }
+
+        /** Carga el tema diario desde la hoja 'ContingutsDiari' para la fecha actual usando fetch. */
+        async function loadDailyTopic() {
+            const today = getTodayDateFormatted();
+            const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${SHEET_NAMES.DAILY_TOPIC}!A:C`;
+            const response = await callSheetsApi(url);
+            const values = response.values;
+            if (values && values.length > 1) {
+                const topicRow = values.slice(1).find(row => row[0] === today);
+                if (topicRow) {
+                    dailyTopicData = {
+                        Data: topicRow[0],
+                        Titol: topicRow[1],
+                        Descripcio: topicRow[2]
+                    };
+                } else {
+                    dailyTopicData = null;
+                }
+            } else {
+                dailyTopicData = null;
+            }
+        }
+
+        /** Rellena el desplegable de alumnos. */
+        function populateStudentSelect() {
+            studentSelect.innerHTML = '<option value="">Selecciona un alumne</option>';
+            studentsData.forEach(student => {
+                const option = document.createElement('option');
+                option.value = student.Nom;
+                option.textContent = student.Nom;
+                studentSelect.appendChild(option);
+            });
+        }
+
+        /**
+         * Inicia la sección de evaluación de vocabulario.
+         * Selecciona 10 palabras aleatorias y genera preguntas.
+         */
+        async function startVocabularyEvaluation() {
+            showSection('vocabularySection');
+            currentVocabQuestionIndex = 0;
+            studentVocabAnswers = [];
+            vocabCorrectAnswers = 0;
+            vocabularyQuestions = [];
+
+            // Seleccionar 10 palabras aleatorias para el test de vocabulario
+            if (vocabularyData.length < 10) {
+                showError(errorVocab, 'No hay suficientes palabras en el vocabulario para la evaluación (mínimo 10).');
+                return;
+            }
+            const shuffledVocab = [...vocabularyData].sort(() => 0.5 - Math.random());
+            const selectedVocab = shuffledVocab.slice(0, 10);
+
+            showLoading(loadingVocab, true);
+            vocabQuestionText.textContent = 'Generando preguntas de vocabulario con Gemini...';
+
+            for (const wordData of selectedVocab) {
+                try {
+                    const question = await generateVocabularyQuestion(wordData.Paraula, currentLanguage, wordData.Tema, wordData.Definicio);
+                    vocabularyQuestions.push({
+                        word: wordData.Paraula,
+                        correctAnswer: wordData.Paraula, // La respuesta correcta es la palabra en catalán
+                        geminiQuestion: question.question,
+                        type: question.type, // 'translation' o 'multiple_choice'
+                        options: question.options // Solo si es multiple_choice
+                    });
+                } catch (error) {
+                    showError(errorVocab, `Error al generar pregunta para "${wordData.Paraula}". Si el problema persiste, recarga la página.`);
+                    // Asegurarse de que el proceso no se detenga por una pregunta fallida
+                    vocabularyQuestions.push({
+                        word: wordData.Paraula,
+                        correctAnswer: wordData.Paraula,
+                        geminiQuestion: `(Error al generar pregunta para "${wordData.Paraula}") Què significa "${wordData.Paraula}"?`,
+                        type: 'translation', // Fallback
+                        options: []
+                    });
+                }
+            }
+            showLoading(loadingVocab, false);
+            nextVocabularyQuestion();
+        }
+
+        /** Muestra la siguiente pregunta de vocabulario. */
+        function nextVocabularyQuestion() {
+            if (currentVocabQuestionIndex < vocabularyQuestions.length) {
+                const question = vocabularyQuestions[currentVocabQuestionIndex];
+                vocabQuestionText.innerHTML = `<strong>${currentVocabQuestionIndex + 1}/${vocabularyQuestions.length}:</strong> ${question.geminiQuestion}`;
+                hideError(errorVocab);
+
+                vocabAnswerInput.value = ''; // Limpiar input
+                vocabOptionsContainer.innerHTML = ''; // Limpiar opciones
+
+                if (question.type === 'multiple_choice' && question.options && question.options.length > 0) {
+                    vocabAnswerInput.classList.add('hidden');
+                    vocabOptionsContainer.classList.remove('hidden');
+                    question.options.forEach(optionText => {
+                        const button = document.createElement('button');
+                        button.classList.add('option-button');
+                        button.textContent = optionText;
+                        button.addEventListener('click', () => {
+                            // Deseleccionar otras opciones
+                            Array.from(vocabOptionsContainer.children).forEach(btn => btn.classList.remove('selected'));
+                            button.classList.add('selected');
+                            vocabAnswerInput.value = optionText; // Usar el input oculto para almacenar la selección
+                        });
+                        vocabOptionsContainer.appendChild(button);
+                    });
+                } else {
+                    vocabAnswerInput.classList.remove('hidden');
+                    vocabOptionsContainer.classList.add('hidden');
+                }
+            } else {
+                // Todas las preguntas de vocabulario respondidas
+                startTopicEvaluation();
+            }
+        }
+
+        /** Evalúa la respuesta de vocabulario del alumno y pasa a la siguiente pregunta. */
+        submitVocabButton.addEventListener('click', async () => {
+            const userAnswer = vocabAnswerInput.value.trim();
+            if (!userAnswer) {
+                showError(errorVocab, 'Por favor, escribe o selecciona una respuesta.');
+                return;
+            }
+            hideError(errorVocab);
+            showLoading(loadingVocab, true);
+
+            const currentQuestion = vocabularyQuestions[currentVocabQuestionIndex];
+            studentVocabAnswers.push({
+                question: currentQuestion.geminiQuestion,
+                userAnswer: userAnswer,
+                correctAnswer: currentQuestion.correctAnswer // La palabra en catalán original
+            });
+
+            try {
+                // Usar Gemini para evaluar la respuesta (puede ser más flexible con sinónimos, etc.)
+                const evaluation = await evaluateAnswer(currentQuestion.geminiQuestion, userAnswer, currentQuestion.correctAnswer, currentLanguage);
+                if (evaluation.isCorrect) {
+                    vocabCorrectAnswers++;
+                }
+            } catch (error) {
+                // Si Gemini falla, hacer una evaluación simple
+                if (userAnswer.toLowerCase() === currentQuestion.correctAnswer.toLowerCase()) {
+                    vocabCorrectAnswers++;
+                }
+                showError(errorVocab, `Error al evaluar tu respuesta (usando evaluación básica).`);
+            }
+
+            showLoading(loadingVocab, false);
+            currentVocabQuestionIndex++;
+            nextVocabularyQuestion();
+        });
+
+        /**
+         * Inicia la sección de evaluación del tema diario.
+         * Genera preguntas basadas en el tema del día.
+         */
+        async function startTopicEvaluation() {
+            showSection('topicSection');
+            currentTopicQuestionIndex = 0;
+            studentTopicAnswers = [];
+            topicCorrectAnswers = 0;
+            topicQuestions = [];
+
+            if (!dailyTopicData) {
+                showError(errorTopic, 'No se ha podido cargar el tema del día. Revisa la hoja "ContingutsDiari".');
+                return;
+            }
+
+            showLoading(loadingTopic, true);
+            topicQuestionText.textContent = 'Generando preguntas del tema con Gemini...';
+
+            try {
+                // Pedir a Gemini que genere 5 preguntas sencillas sobre el tema
+                const generatedQuestions = await generateTopicQuestions(dailyTopicData.Titol, dailyTopicData.Descripcio, currentLanguage);
+                topicQuestions = generatedQuestions.slice(0, 5).map(q => ({ // Asegurarse de tener 5 preguntas
+                    geminiQuestion: q.question,
+                    correctAnswer: q.answer, // Gemini nos dará la respuesta esperada
+                    type: q.type || 'text_input', // 'text_input' o 'multiple_choice'
+                    options: q.options || []
+                }));
+
+                if (topicQuestions.length === 0) {
+                    throw new Error('Gemini no ha podido generar preguntas para el tema (respuesta vacía).');
+                }
+
+            } catch (error) {
+                showError(errorTopic, `Error al generar las preguntas del tema con Gemini. Si el problema persiste, recarga la página.`);
+                // Fallback si Gemini falla:
+                topicQuestions = [{
+                    geminiQuestion: `(Error de generación) Què has après sobre "${dailyTopicData.Titol}"?`,
+                    correctAnswer: '...',
+                    type: 'text_input'
+                }];
+            }
+
+            showLoading(loadingTopic, false);
+            nextTopicQuestion();
+        }
+
+        /** Muestra la siguiente pregunta del tema. */
+        function nextTopicQuestion() {
+            if (currentTopicQuestionIndex < topicQuestions.length) {
+                const question = topicQuestions[currentTopicQuestionIndex];
+                topicQuestionText.innerHTML = `<strong>${currentTopicQuestionIndex + 1}/${topicQuestions.length}:</strong> ${question.geminiQuestion}`;
+                hideError(errorTopic);
+
+                topicAnswerInput.value = ''; // Limpiar input
+                topicOptionsContainer.innerHTML = ''; // Limpiar opciones
+
+                if (question.type === 'multiple_choice' && question.options && question.options.length > 0) {
+                    topicAnswerInput.classList.add('hidden');
+                    topicOptionsContainer.classList.remove('hidden');
+                    question.options.forEach(optionText => {
+                        const button = document.createElement('button');
+                        button.classList.add('option-button');
+                        button.textContent = optionText;
+                        button.addEventListener('click', () => {
+                            Array.from(topicOptionsContainer.children).forEach(btn => btn.classList.remove('selected'));
+                            button.classList.add('selected');
+                            topicAnswerInput.value = optionText;
+                        });
+                        topicOptionsContainer.appendChild(button);
+                    });
+                } else {
+                    topicAnswerInput.classList.remove('hidden');
+                    topicOptionsContainer.classList.add('hidden');
+                }
+            } else {
+                // Todas las preguntas del tema respondidas
+                finishEvaluation();
+            }
+        }
+
+        /** Evalúa la respuesta del tema del alumno y pasa a la siguiente pregunta. */
+        submitTopicButton.addEventListener('click', async () => {
+            const userAnswer = topicAnswerInput.value.trim();
+            if (!userAnswer) {
+                showError(errorTopic, 'Por favor, escribe o selecciona una respuesta.');
+                return;
+            }
+            hideError(errorTopic);
+            showLoading(loadingTopic, true);
+
+            const currentQuestion = topicQuestions[currentTopicQuestionIndex];
+            studentTopicAnswers.push({
+                question: currentQuestion.geminiQuestion,
+                userAnswer: userAnswer,
+                correctAnswer: currentQuestion.correctAnswer
+            });
+
+            try {
+                const evaluation = await evaluateAnswer(currentQuestion.geminiQuestion, userAnswer, currentQuestion.correctAnswer, currentLanguage);
+                if (evaluation.isCorrect) {
+                    topicCorrectAnswers++;
+                }
+            } catch (error) {
+                // Fallback simple si Gemini falla
+                if (userAnswer.toLowerCase().includes(currentQuestion.correctAnswer.toLowerCase().substring(0, Math.min(5, currentQuestion.correctAnswer.length)))) {
+                    topicCorrectAnswers++;
+                }
+                showError(errorTopic, `Error al evaluar tu respuesta (usando evaluación básica).`);
+            }
+
+            showLoading(loadingTopic, false);
+            currentTopicQuestionIndex++;
+            nextTopicQuestion();
+        });
+
+        /**
+         * Finaliza la evaluación, calcula las notas, genera feedback con Gemini y guarda los resultados.
+         */
+        async function finishEvaluation() {
+            showSection('resultsSection');
+            showLoading(loadingResults, true);
+            hideError(errorResults);
+            saveStatus.textContent = 'Guardando resultados...';
+
+            // Calcular notas sobre 10
+            const vocabScore = (vocabCorrectAnswers / vocabularyQuestions.length) * 10 || 0;
+            const topicScore = (topicCorrectAnswers / topicQuestions.length) * 10 || 0;
+
+            finalVocabScore.textContent = vocabScore.toFixed(2);
+            finalTopicScore.textContent = topicScore.toFixed(2);
+
+            let feedbackText = 'No se ha podido generar el feedback.';
+            try {
+                feedbackText = await generateFeedback(vocabScore.toFixed(2), topicScore.toFixed(2), currentLanguage);
+            } catch (error) {
+                showError(errorResults, `Error al generar el feedback con Gemini. Si el problema persiste, recarga la página.`);
+            }
+            geminiFeedback.textContent = feedbackText;
+
+            // Guardar resultados en Google Sheets
+            try {
+                await saveResultsToSheet(vocabScore.toFixed(2), topicScore.toFixed(2), feedbackText);
+                saveStatus.textContent = 'Resultados guardados correctamente!';
+            } catch (error) {
+                showError(errorResults, `Error al guardar los resultados en Google Sheets. Asegúrate de que la hoja 'NotesAlumnes' existe y que el usuario tiene permisos de editor.`);
+                saveStatus.textContent = 'Error al guardar los resultados.';
+            }
+
+            showLoading(loadingResults, false);
+        }
+
+        /**
+         * Guarda las notas y el feedback en la hoja 'NotesAlumnes' usando fetch.
+         * @param {string} vocabScore Nota de vocabulario.
+         * @param {string} topicScore Nota del tema.
+         * @param {string} feedback Texto de feedback de Gemini.
+         */
+        async function saveResultsToSheet(vocabScore, topicScore, feedback) {
+            const today = getTodayDateFormatted();
+            const values = [
+                [today, currentStudent, vocabScore, topicScore, feedback]
+            ];
+            const body = {
+                values: values
+            };
+            // La API Key no es necesaria para las llamadas con token de acceso OAuth
+            const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${SHEET_NAMES.NOTES}!A:E:append?valueInputOption=USER_ENTERED`;
+            await callSheetsApi(url, 'POST', body);
+        }
+
+        // --- FUNCIONES DE INTERACCIÓN CON GEMINI API ---
+
+        /**
+         * Realiza una llamada a la API de Gemini.
+         * @param {Array} chatHistory Historial de conversación para el prompt.
+         * @param {Object} generationConfig Configuración adicional para la generación (ej. schema para JSON).
+         * @returns {Promise<string|Object>} La respuesta de texto o el objeto JSON si se especifica un schema.
+         */
+        async function callGeminiApi(chatHistory, generationConfig = {}) {
+            const payload = {
+                contents: chatHistory,
+                generationConfig: generationConfig
+            };
+
+            // Usar gemini-2.0-flash en lugar de gemini-pro
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`;
+            // Para modelos de visión: models/gemini-pro-vision
+
+            const response = await fetch(apiUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(payload)
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(`Error en la API de Gemini: ${response.status}.`);
+            }
+
+            const result = await response.json();
+
+            if (result.candidates && result.candidates.length > 0 &&
+                result.candidates[0].content && result.candidates[0].content.parts &&
+                result.candidates[0].content.parts.length > 0) {
+                // Si se espera JSON, el resultado estará en text pero como string JSON
+                if (generationConfig.responseMimeType === "application/json") {
+                    try {
+                        return JSON.parse(result.candidates[0].content.parts[0].text);
+                    } catch (e) {
+                        throw new Error("Gemini devolvió JSON inválido.");
+                    }
+                }
+                return result.candidates[0].content.parts[0].text;
+            } else {
+                throw new Error('La API de Gemini devolvió una respuesta vacía o inesperada.');
+            }
+        }
+
+        /**
+         * Genera una pregunta de vocabulario con Gemini.
+         * Puede ser de traducción o de opción múltiple.
+         * @param {string} word La palabra en catalán.
+         * @param {string} studentLang El idioma del alumno (ej. 'es', 'en').
+         * @param {string} topic El tema de la palabra.
+         * @param {string} definition La definición de la palabra.
+         * @returns {Promise<Object>} Un objeto { question: string, type: 'translation'|'multiple_choice', options: string[] }.
+         */
+        async function generateVocabularyQuestion(word, studentLang, topic, definition) {
+            const prompt = `Ets un assistent per a estudiants d'informàtica que aprenen català. Genera una pregunta de vocabulari sobre la paraula "${word}" (tema: ${topic}, definició: "${definition}"). La pregunta ha de ser en català. Pots demanar una traducció a l'idioma "${studentLang}" o oferir opcions múltiples (3 incorrectes y 1 correcta). Si és de traducció, la resposta esperada és la traducció. Si és de múltiple elecció, la resposta esperada és la paraula en català.
+
+            Format de la resposta (JSON):
+            {
+              "question": "string", // La pregunta en català
+              "type": "translation" | "multiple_choice",
+              "options": ["string", "string", "string", "string"] // Només si type és "multiple_choice"
+            }
+
+            Exemples:
+            - {"question": "Tradueix 'ordinador' a castellà.", "type": "translation"}
+            - {"question": "Quina d'aquestes paraules significa 'mouse' en català?", "type": "multiple_choice", "options": ["teclat", "ratolí", "pantalla", "impressora"]}
+            `;
+
+            const generationConfig = {
+                responseMimeType: "application/json",
+                responseSchema: {
+                    type: "OBJECT",
+                    properties: {
+                        question: { type: "STRING" },
+                        type: { type: "STRING", enum: ["translation", "multiple_choice"] },
+                        options: { type: "ARRAY", items: { type: "STRING" } }
+                    },
+                    required: ["question", "type"]
+                }
+            };
+
+            const chatHistory = [{ role: "user", parts: [{ text: prompt }] }];
+            const response = await callGeminiApi(chatHistory, generationConfig);
+            return response;
+        }
+
+        /**
+         * Genera preguntas sencillas sobre un tema diario con Gemini.
+         * @param {string} topicTitle Título del tema.
+         * @param {string} topicDesc Descripción del tema.
+         * @param {string} studentLang Idioma del alumno.
+         * @returns {Promise<Array<Object>>} Un array de objetos { question: string, answer: string, type: 'text_input'|'multiple_choice', options: string[] }.
+         */
+        async function generateTopicQuestions(topicTitle, topicDesc, studentLang) {
+            const prompt = `Ets un professor d'informàtica que prepara preguntes senzilles per a alumnes que estan aprenent català. El tema d'avui és "${topicTitle}" amb la següent descripció: "${topicDesc}".
+            Genera 5 preguntes senzilles en català sobre aquest tema. Per a cada pregunta, proporciona també la resposta correcta esperada. Les preguntes poden ser de resposta lliure o de múltiple elecció (con 3 opcions incorrectes y 1 correcta). El llenguatge ha de ser molt bàsic i adaptat al nivell d'un principiant en català.
+
+            Format de la resposta (JSON - array de preguntes):
+            [
+              {
+                "question": "string", // La pregunta en català
+                "answer": "string", // La resposta correcta esperada
+                "type": "text_input" | "multiple_choice",
+                "options": ["string", "string", "string", "string"] // Només si type és "multiple_choice"
+              },
+              // ... 4 preguntes més
+            ]`;
+
+            const generationConfig = {
+                responseMimeType: "application/json",
+                responseSchema: {
+                    type: "ARRAY",
+                    items: {
+                        type: "OBJECT",
+                        properties: {
+                            question: { type: "STRING" },
+                            answer: { type: "STRING" },
+                            type: { type: "STRING", enum: ["text_input", "multiple_choice"] },
+                            options: { type: "ARRAY", items: { type: "STRING" } }
+                        },
+                        required: ["question", "answer", "type"]
+                    }
+                }
+            };
+
+            const chatHistory = [{ role: "user", parts: [{ text: prompt }] }];
+            const response = await callGeminiApi(chatHistory, generationConfig);
+            return response;
+        }
+
+        /**
+         * Evalúa la respuesta del alumno para una pregunta específica usando Gemini.
+         * @param {string} question La pregunta que se hizo.
+         * @param {string} userAnswer La respuesta del alumno.
+         * @param {string} expectedAnswer La respuesta esperada (del vocabulario o generada por Gemini).
+         * @param {string} studentLang El idioma del alumno.
+         * @returns {Promise<Object>} Un objeto { isCorrect: boolean, explanation: string }.
+         */
+        async function evaluateAnswer(question, userAnswer, expectedAnswer, studentLang) {
+            const prompt = `Ets un avaluador de respostes per a estudiants. Avalua la següent resposta d'un alumne.
+            Pregunta: "${question}"
+            Resposta de l'alumne: "${userAnswer}"
+            Resposta esperada (correcta): "${expectedAnswer}"
+            Idioma de l'alumne: "${studentLang}"
+
+            La teva avaluació ha de ser flexible, considerant sinònims o respostes parcialment correctes si el significat és clar.
+            Format de la resposta (JSON):
+            {
+              "isCorrect": true | false,
+              "explanation": "string" // Breu explicació de la correcció o error
+            }`;
+
+            const generationConfig = {
+                responseMimeType: "application/json",
+                responseSchema: {
+                    type: "OBJECT",
+                    properties: {
+                        isCorrect: { type: "BOOLEAN" },
+                        explanation: { type: "STRING" }
+                    },
+                    required: ["isCorrect", "explanation"]
+                }
+            };
+
+            const chatHistory = [{ role: "user", parts: [{ text: prompt }] }];
+            const response = await callGeminiApi(chatHistory, generationConfig);
+            return response;
+        }
+
+        /**
+         * Genera un feedback general para el alumno basado en sus notas.
+         * El feedback debe ser objetivo y no utilizar la primera persona.
+         * @param {string} vocabScore Nota de vocabulario.
+         * @param {string} topicScore Nota del tema.
+         * @param {string} studentLang Idioma del alumno.
+         * @returns {Promise<string>} El texto del feedback.
+         */
+        async function generateFeedback(vocabScore, topicScore, studentLang) {
+            const prompt = `Genera un feedback concís i objectiu per a un alumne basat en les següents notes:
+            Nota de Vocabulari: ${vocabScore}/10
+            Nota del Tema: ${topicScore}/10
+            El feedback ha de ser en català. Ha d'analitzar el rendiment general de l'alumne, destacant els punts forts i suggerint àrees de millora de manera constructiva. Evita l'ús de la primera persona (com ara "jo penso", "la meva opinió és"). No utilitzis frases com 'jo crec', 'la meva anàlisi és', 'observo que'. Utilitza un llenguatge neutral i analític.`;
+
+            const chatHistory = [{ role: "user", parts: [{ text: prompt }] }];
+            const response = await callGeminiApi(chatHistory); // No se espera JSON aquí
+            return response;
+        }
+
+        // --- INICIALIZACIÓN ---
+        // Se asegura de que el DOM esté completamente cargado antes de intentar acceder a los elementos
+        document.addEventListener('DOMContentLoaded', () => {
+            showSection('welcomeSection');
+            // initializeGsiTokenClient() ahora se llama desde handleGsiClientLoad
+        });
+    </script>
+    <!-- Carga de la librería cliente de Google Identity Services (GSI) -->
+    <!-- El atributo onload asegura que handleGsiClientLoad() se llame cuando la librería esté lista. -->
+    <script src="https://accounts.google.com/gsi/client" async defer onload="handleGsiClientLoad()"></script>
+</body>
+</html>
