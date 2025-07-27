@@ -65,7 +65,7 @@
         }
         /* Estilos específicos para el botón de enviar respuesta */
         #submitVocabButton, #submitTopicButton {
-            background-color: #4CAF50; /* Verde vibrante */
+            background-color: #81C784; /* Verde suave (Material Design light green 300) */
             padding: 1rem 2rem; /* Más grande */
             font-size: 1.125rem; /* Texto más grande */
             border-radius: 0.75rem; /* Más redondeado */
@@ -73,7 +73,7 @@
             margin-top: 1.5rem; /* Espacio superior */
         }
         #submitVocabButton:hover, #submitTopicButton:hover {
-            background-color: #45a049; /* Verde más oscuro al pasar el ratón */
+            background-color: #66BB6A; /* Verde ligeramente más oscuro al pasar el ratón */
             transform: translateY(-3px); /* Mayor efecto de elevación */
             box-shadow: 0 8px 12px rgba(0, 0, 0, 0.25); /* Sombra aún más pronunciada */
         }
@@ -1149,7 +1149,7 @@
             const prompt = `Genera un feedback concís i objectiu per a un alumne basat en les següents notes:
             Nota de Vocabulari: ${vocabScore}/10
             Nota del Tema: ${topicScore}/10
-            El feedback ha de ser en català. Ha d'analitzar el rendiment general de l'alumne, destacant els punts forts i suggerint àrees de millora de manera constructiva. Evita l'ús de la primera persona (com ara "jo penso", "la meva opinió és"). Utilitza un llenguatge neutral i analític.`;
+            El feedback ha de ser en català. Ha d'analitzar el rendiment general de l'alumne, destacant els punts forts i suggerint àrees de millora de manera constructiva. Evita l'ús de la primera persona (com ara "jo penso", "la meva opinió és"). No utilitzis frases com 'jo crec', 'la meva anàlisi és', 'observo que'. Utilitza un llenguatge neutral i analític.`;
 
             const chatHistory = [{ role: "user", parts: [{ text: prompt }] }];
             const response = await callGeminiApi(chatHistory); // No se espera JSON aquí
