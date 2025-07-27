@@ -226,7 +226,7 @@
             </div>
             <div id="loadingResults" class="loading-spinner hidden"></div>
             <div id="errorResults" class="error-message hidden"></div>
-            <p class="mt-4 text-sm text-gray-600" id="saveStatus">Guardant resultats...</p>
+            <p class="mt-4 text-sm text-gray-600" id="saveStatus"></p> <!-- Removed initial text -->
         </div>
     </div>
 
@@ -839,7 +839,7 @@
             showSection('resultsSection');
             showLoading(loadingResults, true);
             hideError(errorResults);
-            saveStatus.textContent = 'Guardando resultados...';
+            // saveStatus.textContent = 'Guardando resultados...'; // Removed this line
 
             // Calcular notas sobre 10
             const vocabScore = (vocabCorrectAnswers / vocabularyQuestions.length) * 10 || 0;
@@ -859,10 +859,10 @@
             // Guardar resultados en Google Sheets
             try {
                 await saveResultsToSheet(vocabScore.toFixed(2), topicScore.toFixed(2), feedbackText);
-                saveStatus.textContent = 'Resultados guardados correctamente!';
+                // saveStatus.textContent = 'Resultados guardados correctamente!'; // Removed this line
             } catch (error) {
                 showError(errorResults, `Error al guardar los resultados en Google Sheets. Asegúrate de que la hoja 'NotesAlumnes' existe y que el usuario tiene permisos de editor.`);
-                saveStatus.textContent = 'Error al guardar los resultados.';
+                // saveStatus.textContent = 'Error al guardar los resultados.'; // Removed this line
             }
 
             showLoading(loadingResults, false);
