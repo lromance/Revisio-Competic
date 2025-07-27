@@ -63,8 +63,10 @@
             transform: translateY(0); /* Vuelve a su posición original al hacer clic */
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Sombra más pequeña al hacer clic */
         }
-        /* Estilos específicos para el botón de enviar respuesta */
-        #submitVocabButton, #submitTopicButton {
+        /* Estilos específicos para el botón de enviar respuesta y ahora también para el de empezar */
+        #startButton,
+        #submitVocabButton,
+        #submitTopicButton {
             background-color: #81C784; /* Verde suave (Material Design light green 300) */
             padding: 1rem 2rem; /* Más grande */
             font-size: 1.125rem; /* Texto más grande */
@@ -72,12 +74,16 @@
             box-shadow: 0 6px 10px rgba(0, 0, 0, 0.2); /* Sombra más pronunciada */
             margin-top: 1.5rem; /* Espacio superior */
         }
-        #submitVocabButton:hover, #submitTopicButton:hover {
+        #startButton:hover,
+        #submitVocabButton:hover,
+        #submitTopicButton:hover {
             background-color: #66BB6A; /* Verde ligeramente más oscuro al pasar el ratón */
             transform: translateY(-3px); /* Mayor efecto de elevación */
             box-shadow: 0 8px 12px rgba(0, 0, 0, 0.25); /* Sombra aún más pronunciada */
         }
-        #submitVocabButton:active, #submitTopicButton:active {
+        #startButton:active,
+        #submitVocabButton:active,
+        #submitTopicButton:active {
             transform: translateY(0);
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.15);
         }
