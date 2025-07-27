@@ -42,19 +42,46 @@
             color: #00796b; /* Un turquesa oscuro para los títulos */
             margin-bottom: 1rem;
         }
+        /* Estilos base para los botones */
         button {
             background-color: #00bcd4; /* Turquesa brillante para botones */
             color: white;
             padding: 0.75rem 1.5rem;
             border-radius: 0.5rem;
-            transition: background-color 0.3s ease;
+            transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.2s ease;
             cursor: pointer;
             font-weight: bold;
             border: none;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Sombra suave */
         }
         button:hover {
             background-color: #0097a7; /* Turquesa más oscuro al pasar el ratón */
+            transform: translateY(-2px); /* Efecto de elevación */
+            box-shadow: 0 6px 10px rgba(0, 0, 0, 0.15); /* Sombra más pronunciada */
         }
+        button:active {
+            transform: translateY(0); /* Vuelve a su posición original al hacer clic */
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Sombra más pequeña al hacer clic */
+        }
+        /* Estilos específicos para el botón de enviar respuesta */
+        #submitVocabButton, #submitTopicButton {
+            background-color: #4CAF50; /* Verde vibrante */
+            padding: 1rem 2rem; /* Más grande */
+            font-size: 1.125rem; /* Texto más grande */
+            border-radius: 0.75rem; /* Más redondeado */
+            box-shadow: 0 6px 10px rgba(0, 0, 0, 0.2); /* Sombra más pronunciada */
+            margin-top: 1.5rem; /* Espacio superior */
+        }
+        #submitVocabButton:hover, #submitTopicButton:hover {
+            background-color: #45a049; /* Verde más oscuro al pasar el ratón */
+            transform: translateY(-3px); /* Mayor efecto de elevación */
+            box-shadow: 0 8px 12px rgba(0, 0, 0, 0.25); /* Sombra aún más pronunciada */
+        }
+        #submitVocabButton:active, #submitTopicButton:active {
+            transform: translateY(0);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.15);
+        }
+
         select, input[type="text"] {
             padding: 0.75rem;
             border-radius: 0.5rem;
@@ -360,7 +387,10 @@
 
                     if (currentStudent && studentsData.length > 0 && vocabularyData.length > 0 && dailyTopicData !== null) {
                         console.log('Autenticación y carga de datos completadas. Iniciando evaluación de vocabulario automáticamente.');
-                        startVocabularyEvaluation();
+                        // Add a small delay for UX
+                        setTimeout(() => {
+                            startVocabularyEvaluation();
+                        }, 500); // 500ms delay
                     } else {
                         // If no student selected yet, or data somehow incomplete, wait for user to click "Començar" again
                         // This case might happen after silent auth if user hasn't selected a student yet.
@@ -516,7 +546,7 @@
                 console.log('loadInitialData() completado.');
             } catch (error) {
                 console.error('Error loading initial data:', error);
-                showError(errorWelcome, 'Error al carregar les dades inicials. Assegura\'t que les fulles existeixen i tens permisos. ' + error.message);
+                showError(errorWelcome, 'Error al carregar les dades inicials. Assegura\'t que les fulles existeixen i tens permisos. Detall: ' + error.message);
                 showLoading(loadingWelcome, false);
             }
         }
@@ -638,7 +668,7 @@
                     });
                 } catch (error) {
                     console.error('Error generando pregunta de vocabulario para:', wordData.Paraula, error);
-                    showError(errorVocab, `Error generant pregunta per "${wordData.Paraula}".`);
+                    showError(errorVocab, `Error generant pregunta per "${wordData.Paraula}". Si el problema persisteix, recarrega la pàgina o contacta l'administrador. Detall: ${error.message}`);
                     // Asegurarse de que el proceso no se detenga por una pregunta fallida
                     vocabularyQuestions.push({
                         word: wordData.Paraula,
@@ -724,7 +754,7 @@
                 } else {
                     console.log('Evaluación básica de vocabulario: Incorrecta.');
                 }
-                showError(errorVocab, 'Error al avaluar la teva resposta (utilitzant avaluació bàsica).');
+                showError(errorVocab, `Error al avaluar la teva resposta (utilitzant avaluació bàsica). Detall: ${error.message}`);
             }
 
             showLoading(loadingVocab, false);
@@ -764,13 +794,13 @@
                 }));
 
                 if (topicQuestions.length === 0) {
-                    throw new Error('Gemini no ha pogut generar preguntes per al tema.');
+                    throw new Error('Gemini no ha pogut generar preguntes per al tema (resposta buida).');
                 }
                 console.log('Preguntas del tema generadas por Gemini:', topicQuestions.length);
 
             } catch (error) {
                 console.error('Error generando preguntas del tema con Gemini:', error);
-                showError(errorTopic, 'Error al generar les preguntes del tema amb Gemini. ' + error.message);
+                showError(errorTopic, `Error al generar les preguntes del tema amb Gemini. Si el problema persisteix, recarrega la pàgina o contacta l'administrador. Detall: ${error.message}`);
                 // Fallback si Gemini falla:
                 topicQuestions = [{
                     geminiQuestion: `(Error de generació) Què has après sobre "${dailyTopicData.Titol}"?`,
@@ -852,7 +882,7 @@
                 } else {
                     console.log('Evaluación básica del tema: Incorrecta.');
                 }
-                showError(errorTopic, 'Error al avaluar la teva resposta (utilitzant avaluació bàsica).');
+                showError(errorTopic, `Error al avaluar la teva resposta (utilitzant avaluació bàsica). Detall: ${error.message}`);
             }
 
             showLoading(loadingTopic, false);
@@ -883,7 +913,7 @@
                 console.log('Feedback de Gemini generado.');
             } catch (error) {
                 console.error('Error generando feedback con Gemini:', error);
-                showError(errorResults, 'Error al generar el feedback amb Gemini.');
+                showError(errorResults, `Error al generar el feedback amb Gemini. Si el problema persisteix, recarrega la pàgina o contacta l'administrador. Detall: ${error.message}`);
             }
             geminiFeedback.textContent = feedbackText;
 
@@ -894,7 +924,7 @@
                 console.log('Resultados guardados en Google Sheets.');
             } catch (error) {
                 console.error('Error al guardar resultados en Google Sheets:', error);
-                showError(errorResults, 'Error al guardar els resultats a Google Sheets. Revisa els permisos i l\'ID de la fulla.');
+                showError(errorResults, `Error al guardar els resultats a Google Sheets. Assegura't que la fulla 'NotesAlumnes' existeix i que l'usuari té permisos d'editor. Detall: ${error.message}`);
                 saveStatus.textContent = 'Error en guardar els resultats.';
             }
 
@@ -937,7 +967,7 @@
                 generationConfig: generationConfig
             };
 
-            // CAMBIO CLAVE: Usar gemini-2.0-flash en lugar de gemini-pro
+            // Usar gemini-2.0-flash en lugar de gemini-pro
             const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`;
             // Para modelos de visión: models/gemini-pro-vision
 
@@ -1108,6 +1138,7 @@
 
         /**
          * Genera un feedback general para el alumno basado en sus notas.
+         * El feedback debe ser objetivo y no utilizar la primera persona.
          * @param {string} vocabScore Nota de vocabulario.
          * @param {string} topicScore Nota del tema.
          * @param {string} studentLang Idioma del alumno.
@@ -1115,10 +1146,10 @@
          */
         async function generateFeedback(vocabScore, topicScore, studentLang) {
             console.log('generateFeedback() iniciado.');
-            const prompt = `Ets un professor d'informàtica. Genera un feedback concís i encoratjador per a un alumne que ha obtingut les següents notes:
+            const prompt = `Genera un feedback concís i objectiu per a un alumne basat en les següents notes:
             Nota de Vocabulari: ${vocabScore}/10
             Nota del Tema: ${topicScore}/10
-            El feedback ha de ser en català i ha de valorar el seu rendiment general, destacant punts forts i suggerint àrees de millora de manera positiva.`;
+            El feedback ha de ser en català. Ha d'analitzar el rendiment general de l'alumne, destacant els punts forts i suggerint àrees de millora de manera constructiva. Evita l'ús de la primera persona (com ara "jo penso", "la meva opinió és"). Utilitza un llenguatge neutral i analític.`;
 
             const chatHistory = [{ role: "user", parts: [{ text: prompt }] }];
             const response = await callGeminiApi(chatHistory); // No se espera JSON aquí
