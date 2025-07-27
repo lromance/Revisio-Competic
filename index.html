@@ -351,6 +351,7 @@
 
         /**
          * Inicializa el cliente de token de Google Identity Services (GSI).
+         * Esta función ahora se llama desde el onload del script GSI.
          */
         function initializeGsiTokenClient() {
             console.log('initializeGsiTokenClient() iniciado.');
@@ -367,6 +368,15 @@
                 startButton.disabled = true;
             }
         }
+
+        /**
+         * Callback global que se ejecuta cuando la librería GSI se ha cargado completamente.
+         * Es el punto de entrada para inicializar el cliente de token de GSI.
+         */
+        window.handleGsiClientLoad = function() {
+            console.log('handleGsiClientLoad() llamado. Inicializando GSI Token Client...');
+            initializeGsiTokenClient();
+        };
 
         /**
          * Inicia el flujo de autenticación de GSI cuando se hace clic en el botón.
@@ -396,7 +406,12 @@
                 // Esta parte se ejecutará si el token expiró o no se obtuvo inicialmente
                 console.warn('No hay token de acceso al llamar a Sheets API. Intentando re-autenticar...');
                 return new Promise((resolve, reject) => {
+                    // Guardar el callback original para restaurarlo después de esta autenticación
+                    const originalCallback = tokenClient.callback;
                     tokenClient.callback = (response) => { // Reasignar callback para esta promesa específica
+                        // Restaurar el callback original
+                        tokenClient.callback = originalCallback;
+
                         if (response.error) {
                             reject(new Error('No hay token de acceso. Autenticación fallida.'));
                         } else {
@@ -1073,11 +1088,11 @@
         document.addEventListener('DOMContentLoaded', () => {
             console.log('DOMContentLoaded: Mostrando welcomeSection.');
             showSection('welcomeSection');
-            // Inicializar GSI Token Client cuando el DOM esté listo
-            initializeGsiTokenClient();
+            // initializeGsiTokenClient() ahora se llama desde handleGsiClientLoad
         });
     </script>
     <!-- Carga de la librería cliente de Google Identity Services (GSI) -->
-    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <!-- El atributo onload asegura que handleGsiClientLoad() se llame cuando la librería esté lista. -->
+    <script src="https://accounts.google.com/gsi/client" async defer onload="handleGsiClientLoad()"></script>
 </body>
 </html>
