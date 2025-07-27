@@ -326,7 +326,7 @@
          */
         window.handleClientLoad = function() {
             console.log('handleClientLoad() llamado. Cargando cliente de gapi...');
-            gapi.load('client', initializeGapiClient);
+            gapi.load('client:auth2', initializeGapiClient); // Carga auth2 también
         }
 
         /**
@@ -337,22 +337,29 @@
         window.initializeGapiClient = async function() {
             console.log('initializeGapiClient() iniciado.');
             try {
-                gapiInstance = gapi; // Asignar la referencia global de gapi
-                await gapiInstance.client.init({
+                // Inicializar gapi.client
+                await gapi.client.init({
                     apiKey: GEMINI_API_KEY, // Aunque Gemini usa fetch, gapi.client.init lo necesita para Sheets
                     discoveryDocs: ["https://sheets.googleapis.com/$discovery/rest?version=v4"],
+                });
+                console.log('gapi.client inicializado.');
+
+                // Inicializar gapi.auth2
+                auth2 = gapi.auth2.init({
                     clientId: GOOGLE_CLIENT_ID,
                     scope: GOOGLE_SCOPES,
                 });
-                gapiInited = true;
-                auth2 = gapiInstance.auth2.getAuthInstance(); // Obtener la instancia de autenticación
+                console.log('gapi.auth2 inicializado.');
+
+                gapiInited = true; // gapi.client y gapi.auth2 están listos
+
                 // Escuchar cambios en el estado de autenticación
                 auth2.isSignedIn.listen(updateSignInStatus);
                 updateSignInStatus(auth2.isSignedIn.get()); // Actualizar estado inicial
-                console.log('Google API client initialized successfully.');
+                console.log('Google API client and Auth initialized successfully.');
             } catch (error) {
                 console.error('Error initializing Google API client:', error);
-                showError(errorWelcome, 'Error al inicialitzar la API de Google. Revisa el teu Client ID i connexió.');
+                showError(errorWelcome, 'Error al inicialitzar la API de Google. Revisa el teu Client ID i connexió. Detalles: ' + error.details || error.message);
             }
         }
 
@@ -373,11 +380,10 @@
                 try {
                     // Solo intentar signIn si no estamos ya en un intento de inicio de sesión
                     // y si no se han otorgado los scopes necesarios.
-                    // Nota: auth2.currentUser.get().hasGrantedScopes(GOOGLE_SCOPES) puede fallar
-                    // si auth2.currentUser.get() aún no está disponible o el usuario no ha interactuado.
-                    // Una forma más robusta es simplemente llamar a signIn() y manejar el pop-up.
-                    await auth2.signIn(); // Intenta iniciar sesión automáticamente
-                    console.log('Intento de signIn silencioso...');
+                    if (!auth2.isSignedIn.get() && !auth2.currentUser.get().hasGrantedScopes(GOOGLE_SCOPES)) {
+                        await auth2.signIn(); // Intenta iniciar sesión automáticamente
+                        console.log('Intento de signIn silencioso...');
+                    }
                 } catch (error) {
                     console.warn('Silent sign-in failed, user needs to click start button to authorize:', error);
                     authStatus.textContent = 'Clica "Començar" per autenticar-te i carregar dades.';
@@ -409,6 +415,10 @@
         /** Carga la lista de alumnos desde la hoja 'LlistaAlumnes'. */
         async function loadStudents() {
             console.log('loadStudents() iniciado. Intentando obtener datos de LlistaAlumnes...');
+            // Asegúrate de que gapiInstance y gapiInstance.client.sheets existen antes de llamar
+            if (!gapiInstance || !gapiInstance.client || !gapiInstance.client.sheets) {
+                throw new Error('Google Sheets API client not ready.');
+            }
             const response = await gapiInstance.client.sheets.spreadsheets.values.get({
                 spreadsheetId: SPREADSHEET_ID,
                 range: `${SHEET_NAMES.STUDENTS}!A:B`, // Asume Nom y Idioma en A y B
@@ -429,6 +439,9 @@
         /** Carga el vocabulario desde la hoja 'VocabulariTIC'. */
         async function loadVocabulary() {
             console.log('loadVocabulary() iniciado. Intentando obtener datos de VocabulariTIC...');
+            if (!gapiInstance || !gapiInstance.client || !gapiInstance.client.sheets) {
+                throw new Error('Google Sheets API client not ready.');
+            }
             const response = await gapiInstance.client.sheets.spreadsheets.values.get({
                 spreadsheetId: SPREADSHEET_ID,
                 range: `${SHEET_NAMES.VOCABULARY}!A:D`, // Asume Paraula, Competència, Tema, Definició
@@ -451,6 +464,9 @@
         /** Carga el tema diario desde la hoja 'ContingutsDiari' para la fecha actual. */
         async function loadDailyTopic() {
             console.log('loadDailyTopic() iniciado. Intentando obtener datos de ContingutsDiari...');
+            if (!gapiInstance || !gapiInstance.client || !gapiInstance.client.sheets) {
+                throw new Error('Google Sheets API client not ready.');
+            }
             const today = getTodayDateFormatted();
             const response = await gapiInstance.client.sheets.spreadsheets.values.get({
                 spreadsheetId: SPREADSHEET_ID,
@@ -499,12 +515,14 @@
          */
         startButton.addEventListener('click', async () => {
             console.log('Botón "Començar" clicado.');
-            if (!auth2.isSignedIn.get()) {
-                console.log('Usuario no autenticado. Intentando signIn interactivo...');
-                // Si no está autenticado, intentar autenticar al hacer clic en "Començar"
+            if (!auth2 || !auth2.isSignedIn.get()) { // Verificar que auth2 existe y que el usuario está autenticado
+                console.log('Usuario no autenticado o auth2 no inicializado. Intentando signIn interactivo...');
                 try {
+                    // Si auth2 no está listo, intentamos inicializarlo de nuevo si es necesario
+                    if (!auth2) {
+                        await initializeGapiClient(); // Re-inicializar si no está listo
+                    }
                     await auth2.signIn();
-                    // Si la autenticación es exitosa, updateSignInStatus se encargará de loadInitialData
                     console.log('signIn interactivo completado (esperando updateSignInStatus).');
                 } catch (error) {
                     console.error('Error during interactive sign-in:', error);
@@ -926,7 +944,7 @@
          */
         async function generateVocabularyQuestion(word, studentLang, topic, definition) {
             console.log('generateVocabularyQuestion() iniciado para:', word);
-            const prompt = `Ets un assistent per a estudiants d'informàtica que aprenen català. Genera una pregunta de vocabulari sobre la paraula "${word}" (tema: ${topic}, definició: "${definition}"). La pregunta ha de ser en català. Pots demanar una traducció a l'idioma "${studentLang}" o oferir opcions múltiples (3 incorrectes i 1 correcta). Si és de traducció, la resposta esperada és la traducció. Si és de múltiple elecció, la resposta esperada és la paraula en català.
+            const prompt = `Ets un assistent per a estudiants d'informàtica que aprenen català. Genera una pregunta de vocabulari sobre la paraula "${word}" (tema: ${topic}, definició: "${definition}"). La pregunta ha de ser en català. Pots demanar una traducció a l'idioma "${studentLang}" o oferir opcions múltiples (3 incorrectes y 1 correcta). Si és de traducció, la resposta esperada és la traducció. Si és de múltiple elecció, la resposta esperada és la paraula en català.
 
             Format de la resposta (JSON):
             {
