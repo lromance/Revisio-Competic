@@ -3,598 +3,300 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Asistent TIC - CFA LA PAU</title>
-    <!-- Carga de Tailwind CSS para un diseño moderno y responsive -->
-    <script src="https://cdn.tailwindcss.com"></script>
+    <title>Test Conexión - Asistent TIC</title>
     <style>
-        /* Configuración de la fuente Inter y colores base */
         body {
-            font-family: 'Inter', sans-serif;
-            background-color: #e0f2f7; /* Un turquesa muy claro para el fondo */
-            color: #333;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
             padding: 20px;
+            background-color: #f5f5f5;
         }
         .container {
-            background-color: #ffffff;
-            border-radius: 1.5rem; /* Bordes redondeados */
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-            padding: 2rem;
-            max-width: 800px;
-            width: 100%;
-            text-align: center;
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
         }
-        h1, h2 {
-            color: #00796b; /* Un turquesa oscuro para los títulos */
-            margin-bottom: 1rem;
-        }
-        button {
-            background-color: #00bcd4; /* Turquesa brillante para botones */
-            color: white;
-            padding: 0.75rem 1.5rem;
-            border-radius: 0.5rem;
-            transition: background-color 0.3s ease;
-            cursor: pointer;
+        .status {
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
             font-weight: bold;
+        }
+        .success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .warning { background-color: #fff3cd; color: #856404; border: 1px solid #ffeaa7; }
+        .info { background-color: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 20px;
             border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
         }
-        button:hover {
-            background-color: #0097a7; /* Turquesa más oscuro al pasar el ratón */
-        }
-        select, input[type="text"] {
-            padding: 0.75rem;
-            border-radius: 0.5rem;
-            border: 1px solid #b2ebf2; /* Borde turquesa claro */
-            width: calc(100% - 1.5rem); /* Ajuste para padding */
-            margin-bottom: 1rem;
-            background-color: #e0f7fa; /* Fondo turquesa muy claro */
-        }
-        .section {
-            display: none; /* Las secciones se mostrarán/ocultarán con JS */
-        }
-        .loading-spinner {
+        button:hover { background-color: #0056b3; }
+        pre { background: #f8f9fa; padding: 15px; border-radius: 5px; overflow-x: auto; }
+        .loading { display: none; }
+        .spinner {
             border: 4px solid #f3f3f3;
-            border-top: 4px solid #00bcd4;
+            border-top: 4px solid #3498db;
             border-radius: 50%;
-            width: 30px;
-            height: 30px;
-            animation: spin 1s linear infinite;
-            margin: 20px auto;
+            width: 20px;
+            height: 20px;
+            animation: spin 2s linear infinite;
+            display: inline-block;
+            margin-right: 10px;
         }
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
-        .error-message {
-            color: #d32f2f; /* Rojo para mensajes de error */
-            background-color: #ffebee;
-            border: 1px solid #ef9a9a;
-            padding: 10px;
-            border-radius: 0.5rem;
-            margin-top: 1rem;
-        }
-        .feedback-box {
-            background-color: #e0f7fa;
-            border: 1px solid #b2ebf2;
-            padding: 1rem;
-            border-radius: 0.75rem;
-            margin-top: 1.5rem;
-            text-align: left;
-        }
-        .question-area {
-            background-color: #f0f8ff; /* Azul muy claro para el área de preguntas */
-            border: 1px solid #cfe9ff;
-            padding: 1.5rem;
-            border-radius: 0.75rem;
-            margin-bottom: 1.5rem;
-            text-align: left;
-        }
-        .option-button {
-            background-color: #e0f7fa;
-            color: #00796b;
-            border: 1px solid #b2ebf2;
-            margin: 0.5rem;
-            padding: 0.75rem 1.25rem;
-            border-radius: 0.5rem;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            width: calc(50% - 1rem); /* Dos columnas */
-            display: inline-block;
-            text-align: center;
-        }
-        .option-button:hover {
-            background-color: #b2ebf2;
-            color: #004d40;
-        }
-        .option-button.selected {
-            background-color: #00bcd4;
-            color: white;
-            border-color: #0097a7;
-        }
     </style>
 </head>
 <body>
     <div class="container">
-        <!-- Sección de bienvenida y configuración inicial -->
-        <div id="welcomeSection" class="section">
-            <h1 class="text-3xl font-bold mb-4">Asistent TIC</h1>
-            <p class="text-lg mb-2">CFA LA PAU - Competic / MEIJN</p>
-            <p class="mb-4">Benvingut/da! Selecciona el teu nom i idioma per començar.</p>
-
-            <label for="studentSelect" class="block text-left mb-1">Selecciona el teu nom:</label>
-            <select id="studentSelect" class="w-full mb-4"></select>
-
-            <label for="languageSelect" class="block text-left mb-1">Selecciona el teu idioma:</label>
-            <select id="languageSelect" class="w-full mb-6">
-                <option value="ca">Català</option>
-                <option value="es">Castellà</option>
-                <option value="en">English</option>
-                <!-- Se pueden añadir más idiomas si es necesario -->
-            </select>
-
-            <button id="startButton">Començar</button>
-            <div id="authStatus" class="mt-4 text-sm text-gray-600"></div>
-            <div id="loadingWelcome" class="loading-spinner hidden"></div>
-            <div id="errorWelcome" class="error-message hidden"></div>
+        <h1>🔧 Test de Conexión - Asistent TIC</h1>
+        <p>Esta página te ayudará a diagnosticar los problemas de conexión con Google Sheets.</p>
+        
+        <div id="config-status" class="status warning">
+            ⚠️ <strong>Paso 1:</strong> Configura tu API Key de Google Sheets abajo
         </div>
-
-        <!-- Sección de evaluación de vocabulario -->
-        <div id="vocabularySection" class="section">
-            <h2 class="text-2xl font-bold mb-4">Avaluació de Vocabulari</h2>
-            <div class="question-area">
-                <p id="vocabQuestionText" class="text-lg mb-4">Carregant pregunta...</p>
-                <input type="text" id="vocabAnswerInput" placeholder="Escriu la teva resposta aquí..." class="w-full hidden">
-                <div id="vocabOptionsContainer" class="grid grid-cols-2 gap-4">
-                    <!-- Opciones de respuesta se cargarán aquí -->
-                </div>
-            </div>
-            <button id="submitVocabButton">Enviar Resposta</button>
-            <div id="loadingVocab" class="loading-spinner hidden"></div>
-            <div id="errorVocab" class="error-message hidden"></div>
+        
+        <div style="margin: 20px 0;">
+            <label for="apiKeyInput"><strong>Tu API Key de Google Sheets:</strong></label><br>
+            <input type="text" id="apiKeyInput" placeholder="Pega aquí tu API Key de Google Sheets" style="width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #ddd; border-radius: 5px;">
+            <small>Esta API Key solo se usa para esta prueba y no se guarda en ningún lugar.</small>
         </div>
-
-        <!-- Sección de evaluación del tema diario -->
-        <div id="topicSection" class="section">
-            <h2 class="text-2xl font-bold mb-4">Avaluació del Tema del Dia</h2>
-            <div class="question-area">
-                <p id="topicQuestionText" class="text-lg mb-4">Carregant pregunta...</p>
-                <input type="text" id="topicAnswerInput" placeholder="Escriu la teva resposta aquí..." class="w-full hidden">
-                <div id="topicOptionsContainer" class="grid grid-cols-2 gap-4">
-                    <!-- Opciones de respuesta se cargarán aquí -->
-                </div>
-            </div>
-            <button id="submitTopicButton">Enviar Resposta</button>
-            <div id="loadingTopic" class="loading-spinner hidden"></div>
-            <div id="errorTopic" class="error-message hidden"></div>
+        
+        <button onclick="testConnection()">🧪 Probar Conexión</button>
+        <button onclick="testAuth()">🔐 Probar Autenticación</button>
+        <button onclick="clearResults()">🗑️ Limpiar Resultados</button>
+        
+        <div id="loading" class="loading status info">
+            <div class="spinner"></div>Probando conexión...
         </div>
-
-        <!-- Sección de resultados -->
-        <div id="resultsSection" class="section">
-            <h2 class="text-2xl font-bold mb-4">Resultats de l'Avaluació</h2>
-            <p class="text-lg mb-2">Nota de Vocabulari: <span id="finalVocabScore" class="font-bold">--</span> / 10</p>
-            <p class="text-lg mb-2">Nota del Tema: <span id="finalTopicScore" class="font-bold">--</span> / 10</p>
-            <div class="feedback-box">
-                <h3 class="text-xl font-semibold mb-2">Feedback de Gemini:</h3>
-                <p id="geminiFeedback">Generant feedback...</p>
-            </div>
-            <div id="loadingResults" class="loading-spinner hidden"></div>
-            <div id="errorResults" class="error-message hidden"></div>
-            <p class="mt-4 text-sm text-gray-600" id="saveStatus">Guardant resultats...</p>
+        
+        <div id="results"></div>
+        
+        <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee;">
+            <h3>📋 Instrucciones para crear la API Key:</h3>
+            <ol>
+                <li><strong>Ve a Google Cloud Console:</strong> <a href="https://console.cloud.google.com/" target="_blank">https://console.cloud.google.com/</a></li>
+                <li><strong>Crea/selecciona un proyecto</strong></li>
+                <li><strong>Habilita Google Sheets API:</strong> APIs y servicios → Biblioteca → Buscar "Google Sheets API" → Habilitar</li>
+                <li><strong>Crea API Key:</strong> APIs y servicios → Credenciales → + CREAR CREDENCIALES → Clave de API</li>
+                <li><strong>Configura restricciones:</strong>
+                    <ul>
+                        <li>Restricciones de sitio web: <code>https://lromance.github.io/*</code></li>
+                        <li>Restricciones de API: Solo "Google Sheets API"</li>
+                    </ul>
+                </li>
+            </ol>
         </div>
     </div>
 
     <script>
-        console.log('Script principal: Inicio de ejecución del script principal.');
-        // --- CONFIGURACIÓN DE LA APLICACIÓN ---
-        // IMPORTANTE: Reemplaza estos placeholders con tus valores reales.
-
-        // Tu API Key de Gemini (Google Generative Language API)
-        const GEMINI_API_KEY = 'AIzaSyDJRnXQHMq9dk2xrfwy5v89swUyo8MWdyE';
-
-        // ⚠️ NUEVA: Tu API Key de Google Sheets (diferente a la de Gemini)
-        // DEBES CREAR ESTA API KEY EN GOOGLE CLOUD CONSOLE
-        const GOOGLE_SHEETS_API_KEY = 'TU_API_KEY_DE_GOOGLE_SHEETS_AQUI';
-
-        // Tu Client ID de OAuth 2.0 (Tipo "Aplicación web")
+        // Configuración
         const GOOGLE_CLIENT_ID = '267258615325-q44v579iv43lrbvrcjv5old76muvv5h8.apps.googleusercontent.com';
-
-        // El ID de tu hoja de cálculo de Google Sheets
         const SPREADSHEET_ID = '1QUiBsT60icEUKDzsUteIp-nPDTVhCeKda_oCjH3WnEQ';
-
-        // Scopes de autorización necesarios para acceder a Google Sheets
-        const GOOGLE_SCOPES = 'https://www.googleapis.com/auth/spreadsheets';
-
-        // Nombres de las hojas dentro de tu documento de Google Sheets
         const SHEET_NAMES = {
+            STUDENTS: 'LlistaAlumnes',
             VOCABULARY: 'VocabulariTIC',
             DAILY_TOPIC: 'ContingutsDiari',
-            STUDENTS: 'LlistaAlumnes',
             NOTES: 'NotesAlumnes'
         };
 
-        // --- VARIABLES GLOBALES DE LA APLICACIÓN ---
-        let gapiInited = false;
-        let gisInited = false;
-        let tokenClient;
-        let auth2; // Referencia a gapi.auth2
+        let gapi;
+        let gapiReady = false;
 
-        let studentsData = []; // Datos de la hoja LlistaAlumnes
-        let vocabularyData = []; // Datos de la hoja VocabulariTIC
-        let dailyTopicData = null; // Datos del tema del día
-
-        let currentStudent = null;
-        let currentLanguage = 'ca'; // Idioma por defecto: catalán
-
-        let vocabularyQuestions = []; // Preguntas generadas para vocabulario
-        let currentVocabQuestionIndex = 0;
-        let studentVocabAnswers = []; // Respuestas del alumno para vocabulario
-        let vocabCorrectAnswers = 0;
-
-        let topicQuestions = []; // Preguntas generadas para el tema
-        let currentTopicQuestionIndex = 0;
-        let studentTopicAnswers = []; // Respuestas del alumno para el tema
-        let topicCorrectAnswers = 0;
-
-        // --- REFERENCIAS A ELEMENTOS DEL DOM ---
-        const welcomeSection = document.getElementById('welcomeSection');
-        const vocabularySection = document.getElementById('vocabularySection');
-        const topicSection = document.getElementById('topicSection');
-        const resultsSection = document.getElementById('resultsSection');
-
-        const studentSelect = document.getElementById('studentSelect');
-        const languageSelect = document.getElementById('languageSelect');
-        const startButton = document.getElementById('startButton');
-        const authStatus = document.getElementById('authStatus');
-        const loadingWelcome = document.getElementById('loadingWelcome');
-        const errorWelcome = document.getElementById('errorWelcome');
-
-        const vocabQuestionText = document.getElementById('vocabQuestionText');
-        const vocabAnswerInput = document.getElementById('vocabAnswerInput');
-        const vocabOptionsContainer = document.getElementById('vocabOptionsContainer');
-        const submitVocabButton = document.getElementById('submitVocabButton');
-        const loadingVocab = document.getElementById('loadingVocab');
-        const errorVocab = document.getElementById('errorVocab');
-
-        const topicQuestionText = document.getElementById('topicQuestionText');
-        const topicAnswerInput = document.getElementById('topicAnswerInput');
-        const topicOptionsContainer = document.getElementById('topicOptionsContainer');
-        const submitTopicButton = document.getElementById('submitTopicButton');
-        const loadingTopic = document.getElementById('loadingTopic');
-        const errorTopic = document.getElementById('errorTopic');
-
-        const finalVocabScore = document.getElementById('finalVocabScore');
-        const finalTopicScore = document.getElementById('finalTopicScore');
-        const geminiFeedback = document.getElementById('geminiFeedback');
-        const loadingResults = document.getElementById('loadingResults');
-        const errorResults = document.getElementById('errorResults');
-        const saveStatus = document.getElementById('saveStatus');
-
-        // --- FUNCIONES DE UTILIDAD ---
-
-        /** Muestra una sección específica de la aplicación y oculta las demás. */
-        function showSection(sectionId) {
-            const sections = [welcomeSection, vocabularySection, topicSection, resultsSection];
-            sections.forEach(section => {
-                if (section.id === sectionId) {
-                    section.style.display = 'block';
-                } else {
-                    section.style.display = 'none';
-                }
-            });
+        function showLoading(show) {
+            document.getElementById('loading').style.display = show ? 'block' : 'none';
         }
 
-        /** Muestra/oculta un spinner de carga. */
-        function showLoading(element, show) {
-            if (show) {
-                element.classList.remove('hidden');
-            } else {
-                element.classList.add('hidden');
-            }
+        function addResult(message, type = 'info') {
+            const results = document.getElementById('results');
+            const div = document.createElement('div');
+            div.className = `status ${type}`;
+            div.innerHTML = message;
+            results.appendChild(div);
         }
 
-        /** Muestra un mensaje de error. */
-        function showError(element, message) {
-            element.textContent = message;
-            element.classList.remove('hidden');
+        function clearResults() {
+            document.getElementById('results').innerHTML = '';
         }
 
-        /** Oculta un mensaje de error. */
-        function hideError(element) {
-            element.classList.add('hidden');
-            element.textContent = '';
-        }
-
-        /** Formatea una fecha a DD/MM/AAAA */
-        function formatDate(date) {
-            const day = String(date.getDate()).padStart(2, '0');
-            const month = String(date.getMonth() + 1).padStart(2, '0'); // Meses son 0-indexados
-            const year = date.getFullYear();
-            return `${day}/${month}/${year}`;
-        }
-
-        /** Obtiene la fecha actual en formato DD/MM/AAAA */
-        function getTodayDateFormatted() {
-            return formatDate(new Date());
-        }
-
-        /**
-         * Callback global para cuando la librería gapi.js se carga.
-         * Es el punto de entrada para cargar el cliente de la API de Google.
-         */
-        window.handleClientLoad = function() {
-            console.log('handleClientLoad() llamado. Cargando cliente de gapi...');
-            gapi.load('client:auth2', initializeGapiClient);
-        }
-
-        /**
-         * Inicializa el cliente de la API de Google.
-         * Configura las credenciales y el descubrimiento de la API de Sheets.
-         */
-        window.initializeGapiClient = async function() {
-            console.log('initializeGapiClient() iniciado.');
+        function updateConfigStatus() {
+            const apiKey = document.getElementById('apiKeyInput').value.trim();
+            const configStatus = document.getElementById('config-status');
             
-            // Verificar que la API Key de Google Sheets esté configurada
-            if (GOOGLE_SHEETS_API_KEY === 'TU_API_KEY_DE_GOOGLE_SHEETS_AQUI') {
-                showError(errorWelcome, 'Error: Cal configurar la API Key de Google Sheets. Consulta les instruccions.');
-                return;
-            }
-            
-            try {
-                // Inicializar gapi.client con la API Key correcta para Sheets
-                await gapi.client.init({
-                    apiKey: GOOGLE_SHEETS_API_KEY, // ✅ CORREGIDO: Usar la API Key de Sheets
-                    discoveryDocs: ["https://sheets.googleapis.com/$discovery/rest?version=v4"],
-                });
-                console.log('gapi.client inicializado con API Key de Sheets.');
-
-                // Inicializar gapi.auth2
-                auth2 = gapi.auth2.init({
-                    clientId: GOOGLE_CLIENT_ID,
-                    scope: GOOGLE_SCOPES,
-                });
-                console.log('gapi.auth2 inicializado.');
-
-                gapiInited = true; // gapi.client y gapi.auth2 están listos
-
-                // Escuchar cambios en el estado de autenticación
-                auth2.isSignedIn.listen(updateSignInStatus);
-                updateSignInStatus(auth2.isSignedIn.get()); // Actualizar estado inicial
-                console.log('Google API client and Auth initialized successfully.');
-            } catch (error) {
-                console.error('Error initializing Google API client:', error);
-                showError(errorWelcome, 'Error al inicialitzar la API de Google. Revisa les teves credencials i connexió. Detalles: ' + (error.details || error.message));
-            }
-        }
-
-        /**
-         * Actualiza el estado de autenticación en la UI.
-         * @param {boolean} isSignedIn True si el usuario está autenticado.
-         */
-        async function updateSignInStatus(isSignedIn) {
-            console.log('updateSignInStatus() llamado. isSignedIn:', isSignedIn);
-            if (isSignedIn) {
-                authStatus.textContent = 'Autenticat amb Google Sheets.';
-                startButton.disabled = false;
-                await loadInitialData(); // Cargar datos una vez autenticado
+            if (apiKey) {
+                configStatus.className = 'status success';
+                configStatus.innerHTML = '✅ <strong>Paso 1 completado:</strong> API Key configurada';
             } else {
-                authStatus.textContent = 'Clica "Començar" per autenticar-te i carregar dades.';
-                startButton.disabled = false; // Permitir que el usuario haga clic para autenticarse
+                configStatus.className = 'status warning';
+                configStatus.innerHTML = '⚠️ <strong>Paso 1:</strong> Configura tu API Key de Google Sheets abajo';
             }
         }
 
-        /**
-         * Carga los datos iniciales (alumnos, vocabulario, tema diario) desde Google Sheets.
-         */
-        async function loadInitialData() {
-            console.log('loadInitialData() iniciado.');
-            showLoading(loadingWelcome, true);
-            hideError(errorWelcome);
-            try {
-                await loadStudents();
-                await loadVocabulary();
-                await loadDailyTopic();
-                populateStudentSelect();
-                showLoading(loadingWelcome, false);
-                console.log('loadInitialData() completado.');
-            } catch (error) {
-                console.error('Error loading initial data:', error);
-                showError(errorWelcome, 'Error al carregar les dades inicials. Assegura\'t que les fulles existeixen i tens permisos. ' + error.message);
-                showLoading(loadingWelcome, false);
-            }
-        }
+        document.getElementById('apiKeyInput').addEventListener('input', updateConfigStatus);
 
-        /** Carga la lista de alumnos desde la hoja 'LlistaAlumnes'. */
-        async function loadStudents() {
-            console.log('loadStudents() iniciado. Intentando obtener datos de LlistaAlumnes...');
-            const response = await gapi.client.sheets.spreadsheets.values.get({
-                spreadsheetId: SPREADSHEET_ID,
-                range: `${SHEET_NAMES.STUDENTS}!A:B`, // Asume Nom y Idioma en A y B
-            });
-            const values = response.result.values;
-            if (values && values.length > 1) { // Ignora la fila de cabecera
-                studentsData = values.slice(1).map(row => ({
-                    Nom: row[0],
-                    Idioma: row[1] || 'ca' // Valor por defecto si no hay idioma
-                }));
-                console.log('Alumnos cargados:', studentsData);
-            } else {
-                console.warn('No se encontraron alumnos en la hoja LlistaAlumnes o solo la cabecera.');
-                studentsData = [];
-            }
-        }
-
-        /** Carga el vocabulario desde la hoja 'VocabulariTIC'. */
-        async function loadVocabulary() {
-            console.log('loadVocabulary() iniciado. Intentando obtener datos de VocabulariTIC...');
-            const response = await gapi.client.sheets.spreadsheets.values.get({
-                spreadsheetId: SPREADSHEET_ID,
-                range: `${SHEET_NAMES.VOCABULARY}!A:D`, // Asume Paraula, Competència, Tema, Definició
-            });
-            const values = response.result.values;
-            if (values && values.length > 1) {
-                vocabularyData = values.slice(1).map(row => ({
-                    Paraula: row[0],
-                    Competencia: row[1],
-                    Tema: row[2],
-                    Definicio: row[3]
-                }));
-                console.log('Vocabulario cargado:', vocabularyData);
-            } else {
-                console.warn('No se encontró vocabulario en la hoja VocabulariTIC.');
-                vocabularyData = [];
-            }
-        }
-
-        /** Carga el tema diario desde la hoja 'ContingutsDiari' para la fecha actual. */
-        async function loadDailyTopic() {
-            console.log('loadDailyTopic() iniciado. Intentando obtener datos de ContingutsDiari...');
-            const today = getTodayDateFormatted();
-            const response = await gapi.client.sheets.spreadsheets.values.get({
-                spreadsheetId: SPREADSHEET_ID,
-                range: `${SHEET_NAMES.DAILY_TOPIC}!A:C`, // Asume Data, Títol, Descripció
-            });
-            const values = response.result.values;
-            if (values && values.length > 1) {
-                const topicRow = values.slice(1).find(row => row[0] === today);
-                if (topicRow) {
-                    dailyTopicData = {
-                        Data: topicRow[0],
-                        Titol: topicRow[1],
-                        Descripcio: topicRow[2]
-                    };
-                    console.log('Tema del día cargado:', dailyTopicData);
-                } else {
-                    console.warn(`No se encontró tema para hoy (${today}) en la hoja ContingutsDiari.`);
-                    dailyTopicData = null;
-                }
-            } else {
-                console.warn('No se encontraron temas en la hoja ContingutsDiari.');
-                dailyTopicData = null;
-            }
-        }
-
-        /** Rellena el desplegable de alumnos. */
-        function populateStudentSelect() {
-            console.log('populateStudentSelect() iniciado. Alumnos a añadir:', studentsData.length);
-            studentSelect.innerHTML = '<option value="">Selecciona un alumne</option>';
-            studentsData.forEach(student => {
-                const option = document.createElement('option');
-                option.value = student.Nom;
-                option.textContent = student.Nom;
-                studentSelect.appendChild(option);
-            });
-            if (studentsData.length > 0) {
-                console.log('Desplegable de alumnos rellenado.');
-            } else {
-                console.warn('No hay alumnos para rellenar el desplegable.');
-            }
-        }
-
-        /**
-         * Inicia la evaluación.
-         * Carga el alumno y el idioma seleccionados y pasa a la sección de vocabulario.
-         */
-        startButton.addEventListener('click', async () => {
-            console.log('Botón "Començar" clicado.');
-            if (!auth2 || !auth2.isSignedIn.get()) {
-                console.log('Usuario no autenticado. Intentando signIn interactivo...');
-                try {
-                    if (!auth2) {
-                        await initializeGapiClient();
-                    }
-                    await auth2.signIn();
-                    console.log('signIn interactivo completado.');
-                } catch (error) {
-                    console.error('Error during interactive sign-in:', error);
-                    showError(errorWelcome, 'No s\'ha pogut autenticar. Revisa els permisos del navegador.');
-                }
-                return;
-            }
-
-            currentStudent = studentSelect.value;
-            currentLanguage = languageSelect.value;
-
-            if (!currentStudent) {
-                showError(errorWelcome, 'Per favor, selecciona el teu nom.');
-                return;
-            }
-            hideError(errorWelcome);
-
-            // Intentar cargar datos de nuevo si no se cargaron
-            if (studentsData.length === 0 || vocabularyData.length === 0 || dailyTopicData === null) {
-                console.log('Datos iniciales no cargados completamente. Intentando recargar...');
-                await loadInitialData();
-                if (studentsData.length === 0 || vocabularyData.length === 0 || dailyTopicData === null) {
-                    showError(errorWelcome, 'No s\'han pogut carregar totes les dades necessàries. Revisa les fulles de càlcul.');
+        // Cargar Google API
+        function loadGoogleAPI() {
+            return new Promise((resolve, reject) => {
+                if (window.gapi) {
+                    resolve();
                     return;
                 }
-            }
-
-            // Iniciar la evaluación de vocabulario
-            startVocabularyEvaluation();
-        });
-
-        /**
-         * Inicia la sección de evaluación de vocabulario.
-         * Selecciona 10 palabras aleatorias y genera preguntas.
-         */
-        async function startVocabularyEvaluation() {
-            console.log('startVocabularyEvaluation() iniciado.');
-            showSection('vocabularySection');
-            currentVocabQuestionIndex = 0;
-            studentVocabAnswers = [];
-            vocabCorrectAnswers = 0;
-            vocabularyQuestions = [];
-
-            // Seleccionar 10 palabras aleatorias para el test de vocabulario
-            if (vocabularyData.length < 10) {
-                showError(errorVocab, 'No hi ha prou paraules al vocabulari per fer l\'avaluació (mínim 10).');
-                console.warn('No hay suficientes palabras de vocabulario. Cantidad:', vocabularyData.length);
-                return;
-            }
-            const shuffledVocab = [...vocabularyData].sort(() => 0.5 - Math.random());
-            const selectedVocab = shuffledVocab.slice(0, 10);
-
-            showLoading(loadingVocab, true);
-            vocabQuestionText.textContent = 'Generant preguntes de vocabulari amb Gemini...';
-
-            for (const wordData of selectedVocab) {
-                try {
-                    const question = await generateVocabularyQuestion(wordData.Paraula, currentLanguage, wordData.Tema, wordData.Definicio);
-                    vocabularyQuestions.push({
-                        word: wordData.Paraula,
-                        correctAnswer: wordData.Paraula,
-                        geminiQuestion: question.question,
-                        type: question.type,
-                        options: question.options
+                
+                window.handleClientLoad = function() {
+                    window.gapi.load('client:auth2', async () => {
+                        try {
+                            gapi = window.gapi;
+                            gapiReady = true;
+                            addResult('✅ Google API cargada correctamente', 'success');
+                            resolve();
+                        } catch (error) {
+                            addResult('❌ Error cargando Google API: ' + error.message, 'error');
+                            reject(error);
+                        }
                     });
-                } catch (error) {
-                    console.error('Error generando pregunta de vocabulario para:', wordData.Paraula, error);
-                    vocabularyQuestions.push({
-                        word: wordData.Paraula,
-                        correctAnswer: wordData.Paraula,
-                        geminiQuestion: `(Error al generar pregunta para "${wordData.Paraula}") Què significa "${wordData.Paraula}"?`,
-                        type: 'translation',
-                        options: []
-                    });
-                }
-            }
-            showLoading(loadingVocab, false);
-            nextVocabularyQuestion();
+                };
+                
+                const script = document.createElement('script');
+                script.src = 'https://apis.google.com/js/api.js?onload=handleClientLoad';
+                script.onerror = () => reject(new Error('No se pudo cargar la API de Google'));
+                document.head.appendChild(script);
+            });
         }
 
-        /** Muestra la siguiente pregunta de vocabulario. */
-        function nextVocabularyQuestion() {
-            console.log('nextVocabularyQuestion() iniciado. Índice:', currentVocabQuestionIndex);
-            if (currentVocabQuestionIndex < vocabularyQuestions.length) {
-                const question = vocabularyQuestions[currentVocabQuestionIndex];
-                vocabQuestionText.innerHTML = `<strong>${currentVocabQuestionIndex + 1}/${vocabularyQuestions.length}:</strong> ${question.geminiQuestion}`;
-                hideError(errorVocab);
+        async function testConnection() {
+            clearResults();
+            showLoading(true);
+            
+            const apiKey = document.getElementById('apiKeyInput').value.trim();
+            
+            if (!apiKey) {
+                addResult('❌ Por favor, introduce tu API Key de Google Sheets', 'error');
+                showLoading(false);
+                return;
+            }
+            
+            try {
+                // Paso 1: Cargar Google API
+                addResult('🔄 Paso 1: Cargando Google API...', 'info');
+                await loadGoogleAPI();
+                
+                // Paso 2: Inicializar cliente
+                addResult('🔄 Paso 2: Inicializando cliente Google Sheets...', 'info');
+                await gapi.client.init({
+                    apiKey: apiKey,
+                    discoveryDocs: ["https://sheets.googleapis.com/$discovery/rest?version=v4"],
+                });
+                addResult('✅ Cliente Google Sheets inicializado', 'success');
+                
+                // Paso 3: Probar acceso a cada hoja
+                for (const [sheetType, sheetName] of Object.entries(SHEET_NAMES)) {
+                    try {
+                        addResult(`🔄 Probando acceso a hoja: ${sheetName}...`, 'info');
+                        const response = await gapi.client.sheets.spreadsheets.values.get({
+                            spreadsheetId: SPREADSHEET_ID,
+                            range: `${sheetName}!A1:Z10`, // Primeras 10 filas de todas las columnas
+                        });
+                        
+                        const values = response.result.values;
+                        if (values && values.length > 0) {
+                            addResult(`✅ Hoja "${sheetName}": ${values.length} filas encontradas`, 'success');
+                            addResult(`📋 Encabezados: ${values[0].join(', ')}`, 'info');
+                        } else {
+                            addResult(`⚠️ Hoja "${sheetName}": Accesible pero vacía`, 'warning');
+                        }
+                    } catch (error) {
+                        addResult(`❌ Error accediendo a hoja "${sheetName}": ${error.message}`, 'error');
+                        if (error.status === 404) {
+                            addResult(`💡 Sugerencia: La hoja "${sheetName}" no existe. Verifica el nombre.`, 'warning');
+                        } else if (error.status === 403) {
+                            addResult(`💡 Sugerencia: Sin permisos para "${sheetName}". Verifica que la hoja sea pública o que tengas acceso.`, 'warning');
+                        }
+                    }
+                }
+                
+                addResult('🎉 Test de conexión completado', 'success');
+                
+            } catch (error) {
+                addResult('❌ Error durante el test: ' + error.message, 'error');
+                if (error.message.includes('403')) {
+                    addResult('💡 Error 403: Verifica que tu API Key tenga permisos para Google Sheets API', 'warning');
+                } else if (error.message.includes('400')) {
+                    addResult('💡 Error 400: Verifica que tu API Key sea válida', 'warning');
+                }
+            }
+            
+            showLoading(false);
+        }
 
-                vocabAnswerInput.value = '';
-                vocabOptionsContainer.innerHTML = '';
+        async function testAuth() {
+            clearResults();
+            showLoading(true);
+            
+            const apiKey = document.getElementById('apiKeyInput').value.trim();
+            
+            if (!apiKey) {
+                addResult('❌ Por favor, introduce tu API Key primero', 'error');
+                showLoading(false);
+                return;
+            }
+            
+            try {
+                // Cargar y configurar Google API si no está lista
+                if (!gapiReady) {
+                    await loadGoogleAPI();
+                    await gapi.client.init({
+                        apiKey: apiKey,
+                        discoveryDocs: ["https://sheets.googleapis.com/$discovery/rest?version=v4"],
+                    });
+                }
+                
+                addResult('🔄 Inicializando autenticación OAuth...', 'info');
+                
+                // Inicializar auth2
+                const auth2 = gapi.auth2.init({
+                    client_id: GOOGLE_CLIENT_ID,
+                    scope: 'https://www.googleapis.com/auth/spreadsheets'
+                });
+                
+                addResult('✅ OAuth inicializado', 'success');
+                
+                // Verificar estado de autenticación
+                const authInstance = gapi.auth2.getAuthInstance();
+                if (authInstance.isSignedIn.get()) {
+                    addResult('✅ Usuario ya autenticado', 'success');
+                    const user = authInstance.currentUser.get();
+                    const profile = user.getBasicProfile();
+                    addResult(`👤 Usuario: ${profile.getName()} (${profile.getEmail()})`, 'info');
+                } else {
+                    addResult('ℹ️ Usuario no autenticado. Iniciando proceso de login...', 'info');
+                    const user = await authInstance.signIn();
+                    const profile = user.getBasicProfile();
+                    addResult(`✅ Autenticación exitosa: ${profile.getName()} (${profile.getEmail()})`, 'success');
+                }
+                
+            } catch (error) {
+                addResult('❌ Error en autenticación: ' + error.message, 'error');
+                if (error.error === 'popup_blocked_by_browser') {
+                    addResult('💡 El navegador bloqueó la ventana popup. Permite popups para este sitio.', 'warning');
+                }
+            }
+            
+            showLoading(false);
+        }
 
-                if (question.type === 'multiple_choice' && question.options
+        // Auto-cargar Google API al cargar la página
+        window.addEventListener('load', () => {
+            addResult('🚀 Página cargada. Listo para probar la conexión.', 'info');
+        });
+    </script>
+</body>
+</html>
