@@ -4,16 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Asistent TIC - CFA LA PAU</title>
-    <!-- Política de Seguridad de Contenido (CSP) - MUY PERMISIVA PARA DEBUGGING -->
-    <!-- ADVERTENCIA: NO USAR EN PRODUCCIÓN REAL SIN RESTRINGIRLA. -->
+    <!-- Política de Seguridad de Contenido (CSP) - Versión corregida y explícita -->
+    <!-- Esto intenta asegurar que todos los recursos necesarios sean permitidos. -->
     <meta http-equiv="Content-Security-Policy" content="
         default-src 'self';
-        script-src * 'unsafe-inline' 'unsafe-eval'; /* Permite scripts de cualquier origen */
-        frame-src *; /* Permite iframes de cualquier origen */
-        connect-src *; /* Permite conexiones de red a cualquier origen */
-        img-src 'self' data: *; /* Permite imágenes de cualquier origen y data URIs */
-        style-src 'self' 'unsafe-inline' *; /* Permite estilos de cualquier origen */
-        font-src 'self' data: *; /* Permite fuentes de cualquier origen */
+        script-src 'self' 'unsafe-inline' 'unsafe-eval' https://accounts.google.com https://www.gstatic.com https://cdn.tailwindcss.com https://www.google.com;
+        style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.tailwindcss.com;
+        img-src 'self' data: https://www.gstatic.com https://www.google.com;
+        connect-src 'self' https://sheets.googleapis.com https://www.googleapis.com https://accounts.google.com https://www.google.com https://generativelanguage.googleapis.com;
+        frame-src https://accounts.google.com https://www.google.com;
+        font-src 'self' data: https://fonts.gstatic.com;
     ">
     <!-- Carga de Tailwind CSS para un diseño moderno y responsive -->
     <script src="https://cdn.tailwindcss.com"></script>
