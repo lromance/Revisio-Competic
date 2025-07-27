@@ -188,12 +188,14 @@
 
     <!-- Definición de la función gapiLoaded en el ámbito global antes de cargar la librería -->
     <script>
+        console.log('Script principal: Definición de window.gapiLoaded');
         /**
          * Inicializa la librería cliente de Google APIs.
          * Se llama cuando el script de gapi.js se carga.
          * ESTA FUNCIÓN DEBE ESTAR EN EL ÁMBITO GLOBAL.
          */
         window.gapiLoaded = function() {
+            console.log('gapiLoaded() llamado. Cargando cliente de gapi...');
             gapi.load('client', initializeGapiClient);
         }
     </script>
@@ -201,6 +203,7 @@
     <!-- Carga de la librería cliente de Google APIs -->
     <script async defer src="https://apis.google.com/js/api.js"></script>
     <script>
+        console.log('Script principal: Inicio de ejecución del script principal.');
         // --- CONFIGURACIÓN DE LA APLICACIÓN ---
         // IMPORTANTE: Reemplaza estos placeholders con tus valores reales.
         // Consulta las instrucciones para obtenerlos.
@@ -338,6 +341,7 @@
          * Configura las credenciales y el descubrimiento de la API de Sheets.
          */
         async function initializeGapiClient() {
+            console.log('initializeGapiClient() iniciado.');
             try {
                 gapiInstance = gapi; // Asignar la referencia global de gapi
                 await gapiInstance.client.init({
@@ -351,7 +355,7 @@
                 // Escuchar cambios en el estado de autenticación
                 auth2.isSignedIn.listen(updateSignInStatus);
                 updateSignInStatus(auth2.isSignedIn.get()); // Actualizar estado inicial
-                console.log('Google API client initialized.');
+                console.log('Google API client initialized successfully.');
             } catch (error) {
                 console.error('Error initializing Google API client:', error);
                 showError(errorWelcome, 'Error al inicialitzar la API de Google. Revisa el teu Client ID i connexió.');
@@ -363,6 +367,7 @@
          * @param {boolean} isSignedIn True si el usuario está autenticado.
          */
         async function updateSignInStatus(isSignedIn) {
+            console.log('updateSignInStatus() llamado. isSignedIn:', isSignedIn);
             if (isSignedIn) {
                 authStatus.textContent = 'Autenticat amb Google Sheets.';
                 startButton.disabled = false;
@@ -373,9 +378,12 @@
                 // Intentar autenticar de forma silenciosa o mostrar botón de autenticación
                 try {
                     // Solo intentar signIn si no estamos ya en un intento de inicio de sesión
-                    if (!auth2.isSignedIn.get() && !auth2.currentUser.get().hasGrantedScopes(GOOGLE_SCOPES)) {
-                        await auth2.signIn(); // Intenta iniciar sesión automáticamente
-                    }
+                    // y si no se han otorgado los scopes necesarios.
+                    // Nota: auth2.currentUser.get().hasGrantedScopes(GOOGLE_SCOPES) puede fallar
+                    // si auth2.currentUser.get() aún no está disponible o el usuario no ha interactuado.
+                    // Una forma más robusta es simplemente llamar a signIn() y manejar el pop-up.
+                    await auth2.signIn(); // Intenta iniciar sesión automáticamente
+                    console.log('Intento de signIn silencioso...');
                 } catch (error) {
                     console.warn('Silent sign-in failed, user needs to click start button to authorize:', error);
                     authStatus.textContent = 'Clica "Començar" per autenticar-te i carregar dades.';
@@ -387,6 +395,7 @@
          * Carga los datos iniciales (alumnos, vocabulario, tema diario) desde Google Sheets.
          */
         async function loadInitialData() {
+            console.log('loadInitialData() iniciado.');
             showLoading(loadingWelcome, true);
             hideError(errorWelcome);
             try {
@@ -395,6 +404,7 @@
                 await loadDailyTopic();
                 populateStudentSelect();
                 showLoading(loadingWelcome, false);
+                console.log('loadInitialData() completado.');
             } catch (error) {
                 console.error('Error loading initial data:', error);
                 showError(errorWelcome, 'Error al carregar les dades inicials. Assegura\'t que les fulles existeixen i tens permisos. ' + error.message);
@@ -404,6 +414,7 @@
 
         /** Carga la lista de alumnos desde la hoja 'LlistaAlumnes'. */
         async function loadStudents() {
+            console.log('loadStudents() iniciado. Intentando obtener datos de LlistaAlumnes...');
             const response = await gapiInstance.client.sheets.spreadsheets.values.get({
                 spreadsheetId: SPREADSHEET_ID,
                 range: `${SHEET_NAMES.STUDENTS}!A:B`, // Asume Nom y Idioma en A y B
@@ -416,13 +427,14 @@
                 }));
                 console.log('Alumnos cargados:', studentsData);
             } else {
-                console.warn('No se encontraron alumnos en la hoja LlistaAlumnes.');
+                console.warn('No se encontraron alumnos en la hoja LlistaAlumnes o solo la cabecera.');
                 studentsData = [];
             }
         }
 
         /** Carga el vocabulario desde la hoja 'VocabulariTIC'. */
         async function loadVocabulary() {
+            console.log('loadVocabulary() iniciado. Intentando obtener datos de VocabulariTIC...');
             const response = await gapiInstance.client.sheets.spreadsheets.values.get({
                 spreadsheetId: SPREADSHEET_ID,
                 range: `${SHEET_NAMES.VOCABULARY}!A:D`, // Asume Paraula, Competència, Tema, Definició
@@ -444,6 +456,7 @@
 
         /** Carga el tema diario desde la hoja 'ContingutsDiari' para la fecha actual. */
         async function loadDailyTopic() {
+            console.log('loadDailyTopic() iniciado. Intentando obtener datos de ContingutsDiari...');
             const today = getTodayDateFormatted();
             const response = await gapiInstance.client.sheets.spreadsheets.values.get({
                 spreadsheetId: SPREADSHEET_ID,
@@ -471,6 +484,7 @@
 
         /** Rellena el desplegable de alumnos. */
         function populateStudentSelect() {
+            console.log('populateStudentSelect() iniciado. Alumnos a añadir:', studentsData.length);
             studentSelect.innerHTML = '<option value="">Selecciona un alumne</option>';
             studentsData.forEach(student => {
                 const option = document.createElement('option');
@@ -478,6 +492,11 @@
                 option.textContent = student.Nom;
                 studentSelect.appendChild(option);
             });
+            if (studentsData.length > 0) {
+                console.log('Desplegable de alumnos rellenado.');
+            } else {
+                console.warn('No hay alumnos para rellenar el desplegable.');
+            }
         }
 
         /**
@@ -485,13 +504,16 @@
          * Carga el alumno y el idioma seleccionados y pasa a la sección de vocabulario.
          */
         startButton.addEventListener('click', async () => {
+            console.log('Botón "Començar" clicado.');
             if (!auth2.isSignedIn.get()) {
+                console.log('Usuario no autenticado. Intentando signIn interactivo...');
                 // Si no está autenticado, intentar autenticar al hacer clic en "Començar"
                 try {
                     await auth2.signIn();
                     // Si la autenticación es exitosa, updateSignInStatus se encargará de loadInitialData
+                    console.log('signIn interactivo completado (esperando updateSignInStatus).');
                 } catch (error) {
-                    console.error('Error during sign-in:', error);
+                    console.error('Error during interactive sign-in:', error);
                     showError(errorWelcome, 'No s\'ha pogut autenticar. Revisa els permisos del navegador.');
                 }
                 return; // Esperar a que se complete la autenticación
@@ -508,6 +530,7 @@
 
             // Intentar cargar datos de nuevo si no se cargaron por algún motivo (ej. error previo)
             if (studentsData.length === 0 || vocabularyData.length === 0 || dailyTopicData === null) {
+                console.log('Datos iniciales no cargados completamente. Intentando recargar...');
                 await loadInitialData();
                 if (studentsData.length === 0 || vocabularyData.length === 0 || dailyTopicData === null) {
                     showError(errorWelcome, 'No s\'han pogut carregar totes les dades necessàries. Revisa les fulles de càlcul.');
@@ -524,6 +547,7 @@
          * Selecciona 10 palabras aleatorias y genera preguntas.
          */
         async function startVocabularyEvaluation() {
+            console.log('startVocabularyEvaluation() iniciado.');
             showSection('vocabularySection');
             currentVocabQuestionIndex = 0;
             studentVocabAnswers = [];
@@ -533,6 +557,7 @@
             // Seleccionar 10 palabras aleatorias para el test de vocabulario
             if (vocabularyData.length < 10) {
                 showError(errorVocab, 'No hi ha prou paraules al vocabulari per fer l\'avaluació (mínim 10).');
+                console.warn('No hay suficientes palabras de vocabulario. Cantidad:', vocabularyData.length);
                 return;
             }
             const shuffledVocab = [...vocabularyData].sort(() => 0.5 - Math.random());
@@ -570,6 +595,7 @@
 
         /** Muestra la siguiente pregunta de vocabulario. */
         function nextVocabularyQuestion() {
+            console.log('nextVocabularyQuestion() iniciado. Índice:', currentVocabQuestionIndex);
             if (currentVocabQuestionIndex < vocabularyQuestions.length) {
                 const question = vocabularyQuestions[currentVocabQuestionIndex];
                 vocabQuestionText.innerHTML = `<strong>${currentVocabQuestionIndex + 1}/${vocabularyQuestions.length}:</strong> ${question.geminiQuestion}`;
@@ -599,12 +625,14 @@
                 }
             } else {
                 // Todas las preguntas de vocabulario respondidas
+                console.log('Todas las preguntas de vocabulario respondidas. Iniciando evaluación del tema.');
                 startTopicEvaluation();
             }
         }
 
         /** Evalúa la respuesta de vocabulario del alumno y pasa a la siguiente pregunta. */
         submitVocabButton.addEventListener('click', async () => {
+            console.log('Botón "Enviar Resposta" (Vocabulario) clicado.');
             const userAnswer = vocabAnswerInput.value.trim();
             if (!userAnswer) {
                 showError(errorVocab, 'Per favor, escriu o selecciona una resposta.');
@@ -626,11 +654,15 @@
                 if (evaluation.isCorrect) {
                     vocabCorrectAnswers++;
                 }
+                console.log('Respuesta de vocabulario evaluada por Gemini. Correcta:', evaluation.isCorrect);
             } catch (error) {
                 console.error('Error al evaluar respuesta de vocabulario con Gemini:', error);
                 // Si Gemini falla, hacer una evaluación simple
                 if (userAnswer.toLowerCase() === currentQuestion.correctAnswer.toLowerCase()) {
                     vocabCorrectAnswers++;
+                    console.log('Evaluación básica de vocabulario: Correcta.');
+                } else {
+                    console.log('Evaluación básica de vocabulario: Incorrecta.');
                 }
                 showError(errorVocab, 'Error al avaluar la teva resposta (utilitzant avaluació bàsica).');
             }
@@ -645,6 +677,7 @@
          * Genera preguntas basadas en el tema del día.
          */
         async function startTopicEvaluation() {
+            console.log('startTopicEvaluation() iniciado.');
             showSection('topicSection');
             currentTopicQuestionIndex = 0;
             studentTopicAnswers = [];
@@ -653,6 +686,7 @@
 
             if (!dailyTopicData) {
                 showError(errorTopic, 'No s\'ha pogut carregar el tema del dia. Revisa la fulla "ContingutsDiari".');
+                console.warn('dailyTopicData es null. No se puede generar el tema.');
                 return;
             }
 
@@ -672,6 +706,7 @@
                 if (topicQuestions.length === 0) {
                     throw new Error('Gemini no ha pogut generar preguntes per al tema.');
                 }
+                console.log('Preguntas del tema generadas por Gemini:', topicQuestions.length);
 
             } catch (error) {
                 console.error('Error generando preguntas del tema con Gemini:', error);
@@ -690,6 +725,7 @@
 
         /** Muestra la siguiente pregunta del tema. */
         function nextTopicQuestion() {
+            console.log('nextTopicQuestion() iniciado. Índice:', currentTopicQuestionIndex);
             if (currentTopicQuestionIndex < topicQuestions.length) {
                 const question = topicQuestions[currentTopicQuestionIndex];
                 topicQuestionText.innerHTML = `<strong>${currentTopicQuestionIndex + 1}/${topicQuestions.length}:</strong> ${question.geminiQuestion}`;
@@ -718,12 +754,14 @@
                 }
             } else {
                 // Todas las preguntas del tema respondidas
+                console.log('Todas las preguntas del tema respondidas. Finalizando evaluación.');
                 finishEvaluation();
             }
         }
 
         /** Evalúa la respuesta del tema del alumno y pasa a la siguiente pregunta. */
         submitTopicButton.addEventListener('click', async () => {
+            console.log('Botón "Enviar Resposta" (Tema) clicado.');
             const userAnswer = topicAnswerInput.value.trim();
             if (!userAnswer) {
                 showError(errorTopic, 'Per favor, escriu o selecciona una resposta.');
@@ -744,13 +782,17 @@
                 if (evaluation.isCorrect) {
                     topicCorrectAnswers++;
                 }
+                console.log('Respuesta del tema evaluada por Gemini. Correcta:', evaluation.isCorrect);
             } catch (error) {
                 console.error('Error al evaluar respuesta del tema con Gemini:', error);
-                showError(errorTopic, 'Error al avaluar la teva resposta (utilitzant avaluació bàsica).');
                 // Fallback simple si Gemini falla
                 if (userAnswer.toLowerCase().includes(currentQuestion.correctAnswer.toLowerCase().substring(0, Math.min(5, currentQuestion.correctAnswer.length)))) {
                     topicCorrectAnswers++;
+                    console.log('Evaluación básica del tema: Correcta.');
+                } else {
+                    console.log('Evaluación básica del tema: Incorrecta.');
                 }
+                showError(errorTopic, 'Error al avaluar la teva resposta (utilitzant avaluació bàsica).');
             }
 
             showLoading(loadingTopic, false);
@@ -762,6 +804,7 @@
          * Finaliza la evaluación, calcula las notas, genera feedback con Gemini y guarda los resultados.
          */
         async function finishEvaluation() {
+            console.log('finishEvaluation() iniciado.');
             showSection('resultsSection');
             showLoading(loadingResults, true);
             hideError(errorResults);
@@ -777,6 +820,7 @@
             let feedbackText = 'No s\'ha pogut generar el feedback.';
             try {
                 feedbackText = await generateFeedback(vocabScore.toFixed(2), topicScore.toFixed(2), currentLanguage);
+                console.log('Feedback de Gemini generado.');
             } catch (error) {
                 console.error('Error generando feedback con Gemini:', error);
                 showError(errorResults, 'Error al generar el feedback amb Gemini.');
@@ -787,6 +831,7 @@
             try {
                 await saveResultsToSheet(vocabScore.toFixed(2), topicScore.toFixed(2), feedbackText);
                 saveStatus.textContent = 'Resultats guardats correctament!';
+                console.log('Resultados guardados en Google Sheets.');
             } catch (error) {
                 console.error('Error al guardar resultados en Google Sheets:', error);
                 showError(errorResults, 'Error al guardar els resultats a Google Sheets. Revisa els permisos i l\'ID de la fulla.');
@@ -803,6 +848,7 @@
          * @param {string} feedback Texto de feedback de Gemini.
          */
         async function saveResultsToSheet(vocabScore, topicScore, feedback) {
+            console.log('saveResultsToSheet() iniciado.');
             const today = getTodayDateFormatted();
             const values = [
                 [today, currentStudent, vocabScore, topicScore, feedback]
@@ -829,6 +875,7 @@
          * @returns {Promise<string|Object>} La respuesta de texto o el objeto JSON si se especifica un schema.
          */
         async function callGeminiApi(chatHistory, generationConfig = {}) {
+            console.log('callGeminiApi() iniciado.');
             const payload = {
                 contents: chatHistory,
                 generationConfig: generationConfig
@@ -859,12 +906,14 @@
                 // Si se espera JSON, el resultado estará en text pero como string JSON
                 if (generationConfig.responseMimeType === "application/json") {
                     try {
+                        console.log('Gemini API response (JSON):', result.candidates[0].content.parts[0].text);
                         return JSON.parse(result.candidates[0].content.parts[0].text);
                     } catch (e) {
                         console.error("Error parsing Gemini JSON response:", e);
                         throw new Error("Gemini returned invalid JSON.");
                     }
                 }
+                console.log('Gemini API response (text):', result.candidates[0].content.parts[0].text);
                 return result.candidates[0].content.parts[0].text;
             } else {
                 console.warn('Gemini API response structure unexpected:', result);
@@ -882,6 +931,7 @@
          * @returns {Promise<Object>} Un objeto { question: string, type: 'translation'|'multiple_choice', options: string[] }.
          */
         async function generateVocabularyQuestion(word, studentLang, topic, definition) {
+            console.log('generateVocabularyQuestion() iniciado para:', word);
             const prompt = `Ets un assistent per a estudiants d'informàtica que aprenen català. Genera una pregunta de vocabulari sobre la paraula "${word}" (tema: ${topic}, definició: "${definition}"). La pregunta ha de ser en català. Pots demanar una traducció a l'idioma "${studentLang}" o oferir opcions múltiples (3 incorrectes i 1 correcta). Si és de traducció, la resposta esperada és la traducció. Si és de múltiple elecció, la resposta esperada és la paraula en català.
 
             Format de la resposta (JSON):
@@ -922,6 +972,7 @@
          * @returns {Promise<Array<Object>>} Un array de objetos { question: string, answer: string, type: 'text_input'|'multiple_choice', options: string[] }.
          */
         async function generateTopicQuestions(topicTitle, topicDesc, studentLang) {
+            console.log('generateTopicQuestions() iniciado para tema:', topicTitle);
             const prompt = `Ets un professor d'informàtica que prepara preguntes senzilles per a alumnes que estan aprenent català. El tema d'avui és "${topicTitle}" amb la següent descripció: "${topicDesc}".
             Genera 5 preguntes senzilles en català sobre aquest tema. Per a cada pregunta, proporciona també la resposta correcta esperada. Les preguntes poden ser de resposta lliure o de múltiple elecció (con 3 opcions incorrectes y 1 correcta). El llenguatge ha de ser molt bàsic i adaptat al nivell d'un principiant en català.
 
@@ -967,6 +1018,7 @@
          * @returns {Promise<Object>} Un objeto { isCorrect: boolean, explanation: string }.
          */
         async function evaluateAnswer(question, userAnswer, expectedAnswer, studentLang) {
+            console.log('evaluateAnswer() iniciado.');
             const prompt = `Ets un avaluador de respostes per a estudiants. Avalua la següent resposta d'un alumne.
             Pregunta: "${question}"
             Resposta de l'alumne: "${userAnswer}"
@@ -1005,6 +1057,7 @@
          * @returns {Promise<string>} El texto del feedback.
          */
         async function generateFeedback(vocabScore, topicScore, studentLang) {
+            console.log('generateFeedback() iniciado.');
             const prompt = `Ets un professor d'informàtica. Genera un feedback concís i encoratjador per a un alumne que ha obtingut les següents notes:
             Nota de Vocabulari: ${vocabScore}/10
             Nota del Tema: ${topicScore}/10
@@ -1018,6 +1071,7 @@
         // --- INICIALIZACIÓN ---
         // Se asegura de que el DOM esté completamente cargado antes de intentar acceder a los elementos
         document.addEventListener('DOMContentLoaded', () => {
+            console.log('DOMContentLoaded: Mostrando welcomeSection.');
             showSection('welcomeSection');
             // La inicialización de gapi se maneja por el atributo 'onload' del script tag
             // y luego se llama a initializeGapiClient.
