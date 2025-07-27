@@ -186,22 +186,10 @@
         </div>
     </div>
 
-    <!-- Definición de la función gapiLoaded en el ámbito global antes de cargar la librería -->
-    <script>
-        console.log('Script principal: Definición de window.gapiLoaded');
-        /**
-         * Inicializa la librería cliente de Google APIs.
-         * Se llama cuando el script de gapi.js se carga.
-         * ESTA FUNCIÓN DEBE ESTAR EN EL ÁMBITO GLOBAL.
-         */
-        window.gapiLoaded = function() {
-            console.log('gapiLoaded() llamado. Cargando cliente de gapi...');
-            gapi.load('client', initializeGapiClient);
-        }
-    </script>
-
     <!-- Carga de la librería cliente de Google APIs -->
-    <script async defer src="https://apis.google.com/js/api.js"></script>
+    <!-- El callback 'gapi.load' se ejecuta directamente cuando el script se carga -->
+    <script async defer src="https://apis.google.com/js/api.js" onload="this.onload=function(){};gapi.load('client', initializeGapiClient)"></script>
+
     <script>
         console.log('Script principal: Inicio de ejecución del script principal.');
         // --- CONFIGURACIÓN DE LA APLICACIÓN ---
