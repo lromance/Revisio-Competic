@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Generador de Preguntes TIC - CFA LA PAU 2</title>
+    <title>Generador de Preguntes TIC - CFA LA PAU</title>
     <!-- Política de Seguridad de Contenido (CSP) - Versión corregida y explícita -->
     <!-- Esto intenta asegurar que todos los recursos necesarios sean permitidos. -->
     <meta http-equiv="Content-Security-Policy" content="
@@ -523,22 +523,26 @@
             }
 
             try {
-                // Select 10 random vocabulary words
+                // Select 8 random vocabulary words
                 const shuffledVocab = [...vocabularyData].sort(() => 0.5 - Math.random());
-                const selectedVocab = shuffledVocab.slice(0, 10);
+                const selectedVocab = shuffledVocab.slice(0, 8); // Changed to 8 words
                 const vocabList = selectedVocab.map(w => `"${w.Paraula}" (Tema: ${w.Tema}, Definició: "${w.Definicio}")`).join(', ');
 
                 const prompt = `Ets un generador de preguntes d'informàtica per a estudiants que aprenen català.
                 Genera un array de 15 objectes JSON, cadascun representant una pregunta.
                 Totes les preguntes han de ser de **múltiple elecció** amb **exactament 4 opcions** (1 correcta i 3 incorrectes).
-                Les preguntes han de ser en català.
+                El llenguatge de les preguntes i les opcions ha de ser **molt senzill en català**.
 
-                **10 preguntes de vocabulari:**
+                **8 preguntes de vocabulari:**
                 Basades en les següents paraules de vocabulari TIC.
+                Per a cada pregunta, la resposta correcta ha de ser en català.
+                Les opcions incorrectes han de ser termes TIC plausibles en català.
+                Per a **almenys 2** d'aquestes 8 preguntes de vocabulari, inclou **una opció incorrecta que sigui un terme informàtic en anglès** (per exemple, "mouse", "keyboard", "software") que actuï com a distractor.
                 Paraules de vocabulari: ${vocabList}
 
-                **5 preguntes sobre el tema del dia:**
+                **7 preguntes sobre el tema del dia:**
                 Basades en el següent tema del dia.
+                El nivell de les preguntes i les opcions ha de ser **senzill d'informàtica i de català**.
                 Tema del dia: Títol: "${dailyTopicData.Titol}", Descripció: "${dailyTopicData.Descripcio}"
 
                 **Format de cada objecte pregunta (JSON):**
@@ -553,7 +557,7 @@
                   "Opcion4": "string"  // Obligatori: Quarta opció de resposta.
                 }
 
-                Assegura't que l'array conté exactament 15 preguntes (10 de vocabulari i 5 de tema).
+                Assegura't que l'array conté exactament 15 preguntes (8 de vocabulari i 7 de tema).
                 Per a cada pregunta de múltiple elecció, la "RespuestaCorrecta" ha d'estar inclosa en una de les "Opcion1" a "Opcion4".
                 Les opcions incorrectes han de ser plausibles però clarament errònies.
                 `;
