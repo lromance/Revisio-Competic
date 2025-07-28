@@ -209,6 +209,10 @@
     <script>
         // --- APPLICATION CONFIGURATION ---
         // IMPORTANT: Replace these placeholders with your actual values.
+        // Your API Key for Gemini (Google Generative Language API)
+        // Ensure this is your actual key.
+        const GEMINI_API_KEY = 'AIzaSyDJRnXQHMq9dk2xrfwy5v89swUyo8MWdyE'; // <<--- Pega tu clave API de Gemini aquí (Ej: 'AIzaSyDJRnXQHMq9dk2xrfwy5v89swUyo8MWdyE')
+
         // Your OAuth 2.0 Client ID (Web Application type)
         const GOOGLE_CLIENT_ID = '267258615325-q44v579iv43lrbvrcjv5old76muvv5h8.apps.googleusercontent.com';
 
@@ -222,7 +226,6 @@
         const SHEET_NAMES = {
             VOCABULARY: 'VocabulariTIC',
             DAILY_TOPIC: 'ContingutsDiari',
-            // STUDENTS: 'LlistaAlumnes', // Not needed for this app
             PREGENERATED_QUESTIONS: 'PreguntesGenerades' // Sheet for pre-generated questions
         };
 
@@ -230,18 +233,15 @@
         let tokenClient; // GSI token client
         let accessToken = null; // Access token for Sheets API calls
 
-        // let studentsData = []; // Not needed for this app
         let vocabularyData = []; // Data from VocabulariTIC sheet
         let dailyTopicData = null; // Data from daily topic sheet
 
-        // let currentStudent = null; // Not needed for this app
         let currentLanguage = 'ca'; // Default language: Catalan
 
         // --- DOM ELEMENT REFERENCES ---
         const welcomeSection = document.getElementById('welcomeSection');
         const questionGenerationSection = document.getElementById('questionGenerationSection');
 
-        // const studentSelect = document.getElementById('studentSelect'); // Removed
         const languageSelect = document.getElementById('languageSelect');
         const startButton = document.getElementById('startButton');
         const authStatus = document.getElementById('authStatus');
@@ -326,7 +326,6 @@
                 // Load initial data, then proceed to question generation section
                 loadInitialData().then(() => {
                     currentLanguage = languageSelect.value; // Get selected language
-                    // No student selection needed here
                     if (vocabularyData.length > 0 && dailyTopicData !== null) {
                         setTimeout(() => {
                             showSection('questionGenerationSection');
@@ -458,10 +457,8 @@
             showLoading(loadingWelcome, true);
             hideError(errorWelcome);
             try {
-                // await loadStudents(); // Not needed for this app
                 await loadVocabulary();
                 await loadDailyTopic();
-                // populateStudentSelect(); // Not needed for this app
                 showLoading(loadingWelcome, false);
             } catch (error) {
                 showError(errorWelcome, 'Error al cargar los datos iniciales. Asegúrate de que las hojas existen y tienes permisos.');
@@ -683,9 +680,8 @@
                 generationConfig: generationConfig
             };
 
-            // GEMINI_API_KEY is left empty, Canvas runtime will provide it for gemini-2.0-flash
-            const apiKey = "";
-            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+            // Use the GEMINI_API_KEY constant directly
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`;
 
             const response = await fetch(apiUrl, {
                 method: 'POST',
