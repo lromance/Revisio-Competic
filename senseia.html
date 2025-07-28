@@ -226,11 +226,11 @@
 
         // Nombres de las hojas dentro de tu documento de Google Sheets
         const SHEET_NAMES = {
-            VOCABULARY: 'VocabulariTIC',
-            DAILY_TOPIC: 'ContingutsDiari',
+            // VOCABULARY: 'VocabulariTIC', // No se consulta directamente para la evaluación
+            // DAILY_TOPIC: 'ContingutsDiari', // No se consulta directamente para la evaluación
             STUDENTS: 'LlistaAlumnes',
             NOTES: 'NotesAlumnes',
-            PREGENERATED_QUESTIONS: 'PreguntesGenerades' // Nueva hoja para preguntas pre-generadas
+            PREGENERATED_QUESTIONS: 'PreguntesGenerades' // Hoja principal para preguntas
         };
 
         // --- VARIABLES GLOBALES DE LA APLICACIÓN ---
@@ -238,8 +238,6 @@
         let accessToken = null; // Token de acceso para las llamadas a la API de Sheets
 
         let studentsData = []; // Datos de la hoja LlistaAlumnes
-        let vocabularyData = []; // Datos de la hoja VocabulariTIC
-        let dailyTopicData = null; // Datos del tema del día
         let pregeneratedQuestionsData = []; // Datos de la nueva hoja PreguntesGenerades
 
         let currentStudent = null;
@@ -256,7 +254,7 @@
 
         // --- REFERENCIAS A ELEMENTOS DEL DOM ---
         const welcomeSection = document.getElementById('welcomeSection');
-        const evaluationSection = document.getElementById('evaluationSection'); // Renamed ID
+        const evaluationSection = document.getElementById('evaluationSection');
         const resultsSection = document.getElementById('resultsSection');
 
         const studentSelect = document.getElementById('studentSelect');
@@ -266,12 +264,12 @@
         const loadingWelcome = document.getElementById('loadingWelcome');
         const errorWelcome = document.getElementById('errorWelcome');
 
-        const currentQuestionText = document.getElementById('currentQuestionText'); // Renamed ID
-        const currentAnswerInput = document.getElementById('currentAnswerInput'); // Renamed ID
-        const currentOptionsContainer = document.getElementById('currentOptionsContainer'); // Renamed ID
-        const submitAnswerButton = document.getElementById('submitAnswerButton'); // Renamed ID
-        const loadingEvaluation = document.getElementById('loadingEvaluation'); // Renamed ID
-        const errorEvaluation = document.getElementById('errorEvaluation'); // Renamed ID
+        const currentQuestionText = document.getElementById('currentQuestionText');
+        const currentAnswerInput = document.getElementById('currentAnswerInput');
+        const currentOptionsContainer = document.getElementById('currentOptionsContainer');
+        const submitAnswerButton = document.getElementById('submitAnswerButton');
+        const loadingEvaluation = document.getElementById('loadingEvaluation');
+        const errorEvaluation = document.getElementById('errorEvaluation');
 
         const finalVocabScore = document.getElementById('finalVocabScore');
         const finalTopicScore = document.getElementById('finalTopicScore');
@@ -354,11 +352,13 @@
                     currentStudent = studentSelect.value;
                     currentLanguage = languageSelect.value;
 
-                    if (currentStudent && studentsData.length > 0 && vocabularyData.length > 0 && dailyTopicData !== null) {
+                    if (currentStudent && studentsData.length > 0 && pregeneratedQuestionsData.length > 0) {
                         // Add a small delay for UX
                         setTimeout(() => {
                             startEvaluation(); // Call unified start evaluation
                         }, 500); // 500ms delay
+                    } else if (pregeneratedQuestionsData.length === 0) {
+                        showError(errorWelcome, 'No hay preguntas preparadas en la hoja "PreguntesGenerades".');
                     }
                 }).catch(error => {
                     showError(errorWelcome, 'Error al cargar los datos iniciales. Asegúrate de que las hojas existen y tienes permisos.');
@@ -406,7 +406,7 @@
             hideError(errorWelcome);
 
             // If already authenticated and data loaded, proceed to evaluation directly
-            if (accessToken && studentsData.length > 0 && vocabularyData.length > 0 && dailyTopicData !== null) {
+            if (accessToken && studentsData.length > 0 && pregeneratedQuestionsData.length > 0) {
                 startEvaluation(); // Call unified start evaluation
             } else {
                 // If not authenticated or data not loaded, initiate GSI authentication
@@ -481,15 +481,13 @@
 
 
         /**
-         * Loads initial data (students, vocabulary, daily topic, pre-generated questions) from Google Sheets.
+         * Loads initial data (students, pre-generated questions) from Google Sheets.
          */
         async function loadInitialData() {
             showLoading(loadingWelcome, true);
             hideError(errorWelcome);
             try {
                 await loadStudents();
-                await loadVocabulary();
-                await loadDailyTopic();
                 await loadPregeneratedQuestions(); // Load pre-generated questions
                 populateStudentSelect();
                 showLoading(loadingWelcome, false);
@@ -510,45 +508,6 @@
                 }));
             } else {
                 studentsData = [];
-            }
-        }
-
-        /** Loads vocabulary from the 'VocabulariTIC' sheet using fetch. */
-        async function loadVocabulary() {
-            const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${SHEET_NAMES.VOCABULARY}!A:D`;
-            const response = await callSheetsApi(url);
-            const values = response.values;
-            if (values && values.length > 1) {
-                vocabularyData = values.slice(1).map(row => ({
-                    Paraula: row[0],
-                    Competencia: row[1],
-                    Tema: row[2],
-                    Definicio: row[3]
-                }));
-            } else {
-                vocabularyData = [];
-            }
-        }
-
-        /** Loads the daily topic from the 'ContingutsDiari' sheet for the current date using fetch. */
-        async function loadDailyTopic() {
-            const today = getTodayDateFormatted();
-            const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${SHEET_NAMES.DAILY_TOPIC}!A:C`;
-            const response = await callSheetsApi(url);
-            const values = response.values;
-            if (values && values.length > 1) {
-                const topicRow = values.slice(1).find(row => row[0] === today);
-                if (topicRow) {
-                    dailyTopicData = {
-                        Data: topicRow[0],
-                        Titol: topicRow[1],
-                        Descripcio: topicRow[2]
-                    };
-                } else {
-                    dailyTopicData = null;
-                }
-            } else {
-                dailyTopicData = null;
             }
         }
 
@@ -600,77 +559,43 @@
             showLoading(loadingEvaluation, true);
             currentQuestionText.textContent = 'Carregant preguntes...';
 
-            // 1. Collect vocabulary questions
-            if (vocabularyData.length < 10) {
-                showError(errorEvaluation, 'No hi ha prou paraules al vocabulari per fer l\'avaluació (mínim 10).');
+            // Filter and select 10 random vocabulary questions
+            const vocabQuestionsFromSheet = pregeneratedQuestionsData.filter(q => q.Tipo === 'Vocabulari');
+            if (vocabQuestionsFromSheet.length < 10) {
+                showError(errorEvaluation, `No hi ha suficients preguntes de vocabulari a la fulla "PreguntesGenerades" (trobades: ${vocabQuestionsFromSheet.length}, mínim: 10).`);
                 showLoading(loadingEvaluation, false);
                 return;
             }
-            const shuffledVocabWords = [...vocabularyData].sort(() => 0.5 - Math.random());
-            const selectedVocabWords = shuffledVocabWords.slice(0, 10);
+            const shuffledVocabQuestions = [...vocabQuestionsFromSheet].sort(() => 0.5 - Math.random());
+            const selectedVocabQuestions = shuffledVocabQuestions.slice(0, 10);
+            allEvaluationQuestions.push(...selectedVocabQuestions.map(q => ({
+                type: 'Vocabulari',
+                question: q.Pregunta,
+                correctAnswer: q.RespuestaCorrecta,
+                questionType: q.Opcion1 ? 'multiple_choice' : 'translation',
+                options: [q.Opcion1, q.Opcion2, q.Opcion3, q.Opcion4].filter(Boolean)
+            })));
+            totalVocabQuestions = selectedVocabQuestions.length;
 
-            for (const wordData of selectedVocabWords) {
-                const pregenerated = pregeneratedQuestionsData.find(q =>
-                    q.Tipo === 'Vocabulari' && q.Referencia.toLowerCase() === wordData.Paraula.toLowerCase()
-                );
-                if (pregenerated) {
-                    allEvaluationQuestions.push({
-                        type: 'Vocabulari', // Add original type for scoring
-                        question: pregenerated.Pregunta,
-                        correctAnswer: pregenerated.RespuestaCorrecta,
-                        questionType: pregenerated.Opcion1 ? 'multiple_choice' : 'translation',
-                        options: [pregenerated.Opcion1, pregenerated.Opcion2, pregenerated.Opcion3, pregenerated.Opcion4].filter(Boolean)
-                    });
-                    totalVocabQuestions++;
-                } else {
-                    // Fallback if no pre-generated question for this word
-                    allEvaluationQuestions.push({
-                        type: 'Vocabulari',
-                        question: `Què significa "${wordData.Paraula}"?`,
-                        correctAnswer: wordData.Paraula,
-                        questionType: 'translation',
-                        options: []
-                    });
-                    totalVocabQuestions++;
-                }
-            }
-
-            // 2. Collect topic questions
-            if (!dailyTopicData) {
-                showError(errorEvaluation, 'No s\'ha pogut carregar el tema del dia. Revisa la fulla "ContingutsDiari".');
+            // Filter and select 5 random topic questions
+            const topicQuestionsFromSheet = pregeneratedQuestionsData.filter(q => q.Tipo === 'Tema');
+            if (topicQuestionsFromSheet.length < 5) {
+                showError(errorEvaluation, `No hi ha suficients preguntes de tema a la fulla "PreguntesGenerades" (trobades: ${topicQuestionsFromSheet.length}, mínim: 5).`);
                 showLoading(loadingEvaluation, false);
                 return;
             }
+            const shuffledTopicQuestions = [...topicQuestionsFromSheet].sort(() => 0.5 - Math.random());
+            const selectedTopicQuestions = shuffledTopicQuestions.slice(0, 5);
+            allEvaluationQuestions.push(...selectedTopicQuestions.map(q => ({
+                type: 'Tema',
+                question: q.Pregunta,
+                correctAnswer: q.RespuestaCorrecta,
+                questionType: q.Opcion1 ? 'multiple_choice' : 'text_input',
+                options: [q.Opcion1, q.Opcion2, q.Opcion3, q.Opcion4].filter(Boolean)
+            })));
+            totalTopicQuestions = selectedTopicQuestions.length;
 
-            const topicRelatedQuestions = pregeneratedQuestionsData.filter(q =>
-                q.Tipo === 'Tema' && q.Referencia.toLowerCase() === dailyTopicData.Titol.toLowerCase()
-            );
-
-            if (topicRelatedQuestions.length === 0) {
-                showError(errorEvaluation, `No s'han trobat preguntes pre-generades per al tema "${dailyTopicData.Titol}".`);
-                // Fallback if no pre-generated questions for the topic
-                allEvaluationQuestions.push({
-                    type: 'Tema',
-                    question: `(Error de generació) Què has après sobre "${dailyTopicData.Titol}"?`,
-                    correctAnswer: '...',
-                    questionType: 'text_input'
-                });
-                totalTopicQuestions++;
-            } else {
-                const shuffledTopicQuestions = [...topicRelatedQuestions].sort(() => 0.5 - Math.random());
-                shuffledTopicQuestions.slice(0, 5).forEach(q => { // Select up to 5 topic questions
-                    allEvaluationQuestions.push({
-                        type: 'Tema', // Add original type for scoring
-                        question: q.Pregunta,
-                        correctAnswer: q.RespuestaCorrecta,
-                        questionType: q.Opcion1 ? 'multiple_choice' : 'text_input',
-                        options: [q.Opcion1, q.Opcion2, q.Opcion3, q.Opcion4].filter(Boolean)
-                    });
-                    totalTopicQuestions++;
-                });
-            }
-
-            // 3. Shuffle all questions
+            // Shuffle all questions
             allEvaluationQuestions.sort(() => 0.5 - Math.random());
 
             showLoading(loadingEvaluation, false);
