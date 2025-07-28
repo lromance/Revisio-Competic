@@ -1,0 +1,846 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Asistent TIC - CFA LA PAU</title>
+    <!-- Política de Seguridad de Contenido (CSP) - Versión corregida y explícita -->
+    <!-- Esto intenta asegurar que todos los recursos necesarios sean permitidos. -->
+    <meta http-equiv="Content-Security-Policy" content="
+        default-src 'self';
+        script-src 'self' 'unsafe-inline' 'unsafe-eval' https://accounts.google.com https://www.gstatic.com https://cdn.tailwindcss.com https://www.google.com;
+        style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.tailwindcss.com;
+        img-src 'self' data: https://www.gstatic.com https://www.google.com;
+        connect-src 'self' https://sheets.googleapis.com https://www.googleapis.com https://accounts.google.com https://www.google.com;
+        frame-src https://accounts.google.com https://www.google.com;
+        font-src 'self' data: https://fonts.gstatic.com;
+    ">
+    <!-- Carga de Tailwind CSS para un diseño moderno y responsive -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Configuración de la fuente Inter y colores base */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #e0f2f7; /* Un turquesa muy claro para el fondo */
+            color: #333;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            background-color: #ffffff;
+            border-radius: 1.5rem; /* Bordes redondeados */
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            padding: 2rem;
+            max-width: 800px;
+            width: 100%;
+            text-align: center;
+        }
+        h1, h2 {
+            color: #00796b; /* Un turquesa oscuro para los títulos */
+            margin-bottom: 1rem;
+        }
+        /* Estilos base para los botones */
+        button {
+            background-color: #00bcd4; /* Turquesa brillante para botones */
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.2s ease;
+            cursor: pointer;
+            font-weight: bold;
+            border: none;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Sombra suave */
+        }
+        button:hover {
+            background-color: #0097a7; /* Turquesa más oscuro al pasar el ratón */
+            transform: translateY(-2px); /* Efecto de elevación */
+            box-shadow: 0 6px 10px rgba(0, 0, 0, 0.15); /* Sombra más pronunciada */
+        }
+        button:active {
+            transform: translateY(0); /* Vuelve a su posición original al hacer clic */
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Sombra más pequeña al hacer clic */
+        }
+        /* Estilos específicos para el botón de enviar respuesta y ahora también para el de empezar */
+        #startButton,
+        #submitAnswerButton { /* Renamed from submitVocabButton/submitTopicButton */
+            background-color: #81C784; /* Verde suave (Material Design light green 300) */
+            padding: 1rem 2rem; /* Más grande */
+            font-size: 1.125rem; /* Texto más grande */
+            border-radius: 0.75rem; /* Más redondeado */
+            box-shadow: 0 6px 10px rgba(0, 0, 0, 0.2); /* Sombra más pronunciada */
+            margin-top: 1.5rem; /* Espacio superior */
+        }
+        #startButton:hover,
+        #submitAnswerButton:hover {
+            background-color: #66BB6A; /* Verde ligeramente más oscuro al pasar el ratón */
+            transform: translateY(-3px); /* Mayor efecto de elevación */
+            box-shadow: 0 8px 12px rgba(0, 0, 0, 0.25); /* Sombra aún más pronunciada */
+        }
+        #startButton:active,
+        #submitAnswerButton:active {
+            transform: translateY(0);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.15);
+        }
+
+        select, input[type="text"] {
+            padding: 0.75rem;
+            border-radius: 0.5rem;
+            border: 1px solid #b2ebf2; /* Borde turquesa claro */
+            width: calc(100% - 1.5rem); /* Ajuste para padding */
+            margin-bottom: 1rem;
+            background-color: #e0f7fa; /* Fondo turquesa muy claro */
+        }
+        .section {
+            display: none; /* Las secciones se mostrarán/ocultarán con JS */
+        }
+        .loading-spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #00bcd4;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .error-message {
+            color: #d32f2f; /* Rojo para mensajes de error */
+            background-color: #ffebee;
+            border: 1px solid #ef9a9a;
+            padding: 10px;
+            border-radius: 0.5rem;
+            margin-top: 1rem;
+        }
+        .feedback-box {
+            background-color: #e0f7fa;
+            border: 1px solid #b2ebf2;
+            padding: 1rem;
+            border-radius: 0.75rem;
+            margin-top: 1.5rem;
+            text-align: left;
+        }
+        .question-area {
+            background-color: #f0f8ff; /* Azul muy claro para el área de preguntas */
+            border: 1px solid #cfe9ff;
+            padding: 1.5rem;
+            border-radius: 0.75rem;
+            margin-bottom: 1.5rem;
+            text-align: left;
+        }
+        .option-button {
+            background-color: #e0f7fa;
+            color: #00796b;
+            border: 1px solid #b2ebf2;
+            margin: 0.5rem;
+            padding: 0.75rem 1.25rem;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            width: calc(50% - 1rem); /* Dos columnas */
+            display: inline-block;
+            text-align: center;
+        }
+        .option-button:hover {
+            background-color: #b2ebf2;
+            color: #004d40;
+        }
+        .option-button.selected {
+            background-color: #00bcd4;
+            color: white;
+            border-color: #0097a7;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Sección de bienvenida y configuración inicial -->
+        <div id="welcomeSection" class="section">
+            <h1 class="text-3xl font-bold mb-4">Asistent TIC</h1>
+            <p class="text-lg mb-2">CFA LA PAU - Competic / MEIJN</p>
+            <p class="mb-4">Benvingut/da! Selecciona el teu nom i idioma per començar.</p>
+
+            <label for="studentSelect" class="block text-left mb-1">Selecciona el teu nom:</label>
+            <select id="studentSelect" class="w-full mb-4"></select>
+
+            <label for="languageSelect" class="block text-left mb-1">Selecciona el teu idioma:</label>
+            <select id="languageSelect" class="w-full mb-6">
+                <option value="ca">Català</option>
+                <option value="es">Castellà</option>
+                <option value="en">English</option>
+                <!-- Se pueden añadir más idiomas si es necesario -->
+            </select>
+
+            <button id="startButton">Començar</button>
+            <div id="authStatus" class="mt-4 text-sm text-gray-600"></div>
+            <div id="loadingWelcome" class="loading-spinner hidden"></div>
+            <div id="errorWelcome" class="error-message hidden"></div>
+        </div>
+
+        <!-- Sección de evaluación (unificada para vocabulario y tema) -->
+        <div id="evaluationSection" class="section"> <!-- Renamed from vocabularySection -->
+            <h2 class="text-2xl font-bold mb-4">Avaluació</h2>
+            <div class="question-area">
+                <p id="currentQuestionText" class="text-lg mb-4">Carregant pregunta...</p> <!-- Renamed ID -->
+                <input type="text" id="currentAnswerInput" placeholder="Escriu la teva resposta aquí..." class="w-full hidden"> <!-- Renamed ID -->
+                <div id="currentOptionsContainer" class="grid grid-cols-2 gap-4"> <!-- Renamed ID -->
+                    <!-- Opciones de respuesta se cargarán aquí -->
+                </div>
+            </div>
+            <button id="submitAnswerButton">Enviar Resposta</button> <!-- Renamed ID -->
+            <div id="loadingEvaluation" class="loading-spinner hidden"></div> <!-- Renamed ID -->
+            <div id="errorEvaluation" class="error-message hidden"></div> <!-- Renamed ID -->
+        </div>
+
+        <!-- Sección de resultados -->
+        <div id="resultsSection" class="section">
+            <h2 class="text-2xl font-bold mb-4">Resultats de l'Avaluació</h2>
+            <p class="text-lg mb-2">Nota de Vocabulari: <span id="finalVocabScore" class="font-bold">--</span> / 10</p>
+            <p class="text-lg mb-2">Nota del Tema: <span id="finalTopicScore" class="font-bold">--</span> / 10</p>
+            <div class="feedback-box">
+                <h3 class="text-xl font-semibold mb-2">Feedback:</h3>
+                <p id="geminiFeedback">Generant feedback...</p>
+            </div>
+            <div id="loadingResults" class="loading-spinner hidden"></div>
+            <div id="errorResults" class="error-message hidden"></div>
+            <p class="mt-4 text-sm text-gray-600" id="saveStatus"></p>
+        </div>
+    </div>
+
+    <script>
+        // --- CONFIGURACIÓN DE LA APLICACIÓN ---
+        // IMPORTANTE: Reemplaza estos placeholders con tus valores reales.
+        // Tu Client ID de OAuth 2.0 (Tipo "Aplicación web")
+        const GOOGLE_CLIENT_ID = '267258615325-q44v579iv43lrbvrcjv5old76muvv5h8.apps.googleusercontent.com';
+
+        // El ID de tu hoja de cálculo de Google Sheets
+        const SPREADSHEET_ID = '1QUiBsT60icEUKDzsUteIp-nPDTVhCeKda_oCjH3WnEQ';
+
+        // Scopes de autorización necesarios para acceder a Google Sheets
+        const GOOGLE_SCOPES = 'https://www.googleapis.com/auth/spreadsheets';
+
+        // Nombres de las hojas dentro de tu documento de Google Sheets
+        const SHEET_NAMES = {
+            VOCABULARY: 'VocabulariTIC',
+            DAILY_TOPIC: 'ContingutsDiari',
+            STUDENTS: 'LlistaAlumnes',
+            NOTES: 'NotesAlumnes',
+            PREGENERATED_QUESTIONS: 'PreguntesGenerades' // Nueva hoja para preguntas pre-generadas
+        };
+
+        // --- VARIABLES GLOBALES DE LA APLICACIÓN ---
+        let tokenClient; // Cliente de token de GSI
+        let accessToken = null; // Token de acceso para las llamadas a la API de Sheets
+
+        let studentsData = []; // Datos de la hoja LlistaAlumnes
+        let vocabularyData = []; // Datos de la hoja VocabulariTIC
+        let dailyTopicData = null; // Datos del tema del día
+        let pregeneratedQuestionsData = []; // Datos de la nueva hoja PreguntesGenerades
+
+        let currentStudent = null;
+        let currentLanguage = 'ca'; // Idioma por defecto: catalán
+
+        let allEvaluationQuestions = []; // Array unificado para todas las preguntas (vocabulario + tema)
+        let currentQuestionIndex = 0; // Índice para la pregunta actual en allEvaluationQuestions
+        let studentAnswers = []; // Respuestas del alumno para todas las preguntas
+
+        let totalVocabCorrect = 0; // Contador de respuestas correctas de vocabulario
+        let totalTopicCorrect = 0; // Contador de respuestas correctas de tema
+        let totalVocabQuestions = 0; // Número total de preguntas de vocabulario en esta evaluación
+        let totalTopicQuestions = 0; // Número total de preguntas de tema en esta evaluación
+
+        // --- REFERENCIAS A ELEMENTOS DEL DOM ---
+        const welcomeSection = document.getElementById('welcomeSection');
+        const evaluationSection = document.getElementById('evaluationSection'); // Renamed ID
+        const resultsSection = document.getElementById('resultsSection');
+
+        const studentSelect = document.getElementById('studentSelect');
+        const languageSelect = document.getElementById('languageSelect');
+        const startButton = document.getElementById('startButton');
+        const authStatus = document.getElementById('authStatus');
+        const loadingWelcome = document.getElementById('loadingWelcome');
+        const errorWelcome = document.getElementById('errorWelcome');
+
+        const currentQuestionText = document.getElementById('currentQuestionText'); // Renamed ID
+        const currentAnswerInput = document.getElementById('currentAnswerInput'); // Renamed ID
+        const currentOptionsContainer = document.getElementById('currentOptionsContainer'); // Renamed ID
+        const submitAnswerButton = document.getElementById('submitAnswerButton'); // Renamed ID
+        const loadingEvaluation = document.getElementById('loadingEvaluation'); // Renamed ID
+        const errorEvaluation = document.getElementById('errorEvaluation'); // Renamed ID
+
+        const finalVocabScore = document.getElementById('finalVocabScore');
+        const finalTopicScore = document.getElementById('finalTopicScore');
+        const geminiFeedback = document.getElementById('geminiFeedback');
+        const loadingResults = document.getElementById('loadingResults');
+        const errorResults = document.getElementById('errorResults');
+        const saveStatus = document.getElementById('saveStatus');
+
+        // --- FUNCIONES DE UTILIDAD ---
+
+        /** Muestra una sección específica de la aplicación y oculta las demás. */
+        function showSection(sectionId) {
+            const sections = [welcomeSection, evaluationSection, resultsSection];
+            sections.forEach(section => {
+                if (section.id === sectionId) {
+                    section.style.display = 'block';
+                } else {
+                    section.style.display = 'none';
+                }
+            });
+        }
+
+        /** Muestra/oculta un spinner de carga. */
+        function showLoading(element, show) {
+            if (show) {
+                element.classList.remove('hidden');
+            } else {
+                element.classList.add('hidden');
+            }
+        }
+
+        /** Muestra un mensaje de error. */
+        function showError(element, message) {
+            element.textContent = message;
+            element.classList.remove('hidden');
+        }
+
+        /** Oculta un mensaje de error. */
+        function hideError(element) {
+            element.classList.add('hidden');
+            element.textContent = '';
+        }
+
+        /** Formatea una fecha a DD/MM/AAAA */
+        function formatDate(date) {
+            const day = String(date.getDate()).padStart(2, '0');
+            const month = String(date.getMonth() + 1).padStart(2, '0'); // Meses son 0-indexados
+            const year = date.getFullYear();
+            return `${day}/${month}/${year}`;
+        }
+
+        /** Obtiene la fecha actual en formato DD/MM/AAAA */
+        function getTodayDateFormatted() {
+            return formatDate(new Date());
+        }
+
+        /**
+         * Callback para el cliente de token de GSI.
+         * Se llama cuando el token de acceso está disponible o hay un error.
+         * @param {object} response La respuesta del token.
+         */
+        function tokenClientCallback(response) {
+            if (response.error) {
+                if (response.error === 'interaction_required') {
+                    showError(errorWelcome, 'Autenticación necesaria. Haz clic en "Començar" para iniciar sesión con Google.');
+                } else {
+                    showError(errorWelcome, 'Error al autenticar. Haz clic en "Començar" para reintentar.');
+                }
+                accessToken = null;
+                authStatus.textContent = 'Autenticación fallida.';
+                startButton.disabled = false; // Re-habilitar botón para reintento manual
+            } else {
+                accessToken = response.access_token;
+                authStatus.textContent = 'Autenticado con Google Sheets.';
+                startButton.disabled = false;
+
+                // Load initial data, then proceed to evaluation if student selected
+                loadInitialData().then(() => {
+                    // Re-read selected student and language after data might have been loaded/reloaded
+                    currentStudent = studentSelect.value;
+                    currentLanguage = languageSelect.value;
+
+                    if (currentStudent && studentsData.length > 0 && vocabularyData.length > 0 && dailyTopicData !== null) {
+                        // Add a small delay for UX
+                        setTimeout(() => {
+                            startEvaluation(); // Call unified start evaluation
+                        }, 500); // 500ms delay
+                    }
+                }).catch(error => {
+                    showError(errorWelcome, 'Error al cargar los datos iniciales. Asegúrate de que las hojas existen y tienes permisos.');
+                });
+            }
+        }
+
+        /**
+         * Inicializa el cliente de token de Google Identity Services (GSI).
+         * Esta función ahora se llama desde el onload del script GSI.
+         */
+        function initializeGsiTokenClient() {
+            tokenClient = google.accounts.oauth2.initTokenClient({
+                client_id: GOOGLE_CLIENT_ID,
+                scope: GOOGLE_SCOPES,
+                callback: tokenClientCallback,
+            });
+            // Intentar autenticación silenciosa si es posible
+            if (tokenClient) {
+                tokenClient.requestAccessToken({ prompt: 'none' }); // Intento silencioso
+                authStatus.textContent = 'Intentando autenticación automática...';
+                startButton.disabled = true;
+            }
+        }
+
+        /**
+         * Callback global que se ejecuta cuando la librería GSI se ha cargado completamente.
+         * Es el punto de entrada para inicializar el cliente de token de GSI.
+         */
+        window.handleGsiClientLoad = function() {
+            initializeGsiTokenClient();
+        };
+
+        /**
+         * Inicia el flujo de autenticación de GSI cuando se hace clic en el botón.
+         */
+        startButton.addEventListener('click', async () => {
+            currentStudent = studentSelect.value;
+            currentLanguage = languageSelect.value;
+
+            if (!currentStudent) {
+                showError(errorWelcome, 'Por favor, selecciona tu nombre.');
+                return;
+            }
+            hideError(errorWelcome);
+
+            // Si ya tenemos un accessToken y los datos iniciales están cargados, procedemos directamente
+            if (accessToken && studentsData.length > 0 && vocabularyData.length > 0 && dailyTopicData !== null) {
+                startEvaluation(); // Call unified start evaluation
+            } else {
+                // Si no estamos autenticados o los datos no están cargados, iniciamos la autenticación GSI
+                if (tokenClient) {
+                    // Esto disparará tokenClientCallback, que luego llamará a loadInitialData,
+                    // y luego condicionalmente a startEvaluation.
+                    tokenClient.requestAccessToken({ prompt: 'consent' });
+                    authStatus.textContent = 'Esperando tu autorización...';
+                    startButton.disabled = true;
+                } else {
+                    showError(errorWelcome, 'El cliente de autenticación de Google no se ha inicializado. Recarga la página.');
+                }
+            }
+        });
+
+        /**
+         * Realiza una llamada a la API de Google Sheets usando fetch.
+         * @param {string} url La URL de la API de Sheets.
+         * @param {string} method El método HTTP (GET, POST, PUT).
+         * @param {object} body El cuerpo de la solicitud (para POST/PUT).
+         * @returns {Promise<object>} La respuesta JSON de la API.
+         */
+        async function callSheetsApi(url, method = 'GET', body = null) {
+            if (!accessToken) {
+                return new Promise((resolve, reject) => {
+                    const originalCallback = tokenClient.callback; // Guardar el callback original
+                    tokenClient.callback = (response) => {
+                        tokenClient.callback = originalCallback; // Restaurar el callback original
+
+                        if (response.error) {
+                            reject(new Error('No hay token de acceso. Autenticación fallida.'));
+                        } else {
+                            accessToken = response.access_token;
+                            // Reintentar la llamada original con el nuevo token
+                            const headers = {
+                                'Authorization': `Bearer ${accessToken}`,
+                                'Content-Type': 'application/json'
+                            };
+                            const options = {
+                                method: method,
+                                headers: headers,
+                                body: body ? JSON.stringify(body) : null,
+                            };
+                            fetch(url, options).then(res => res.json()).then(resolve).catch(reject);
+                        }
+                    };
+                    tokenClient.requestAccessToken({ prompt: 'consent' }); // Forzar consentimiento para obtener nuevo token
+                });
+            }
+
+            const headers = {
+                'Authorization': `Bearer ${accessToken}`,
+                'Content-Type': 'application/json'
+            };
+
+            const options = {
+                method: method,
+                headers: headers,
+            };
+
+            if (body) {
+                options.body = JSON.stringify(body);
+            }
+
+            const response = await fetch(url, options);
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(`Error en la API de Sheets: ${response.status}.`);
+            }
+
+            return response.json();
+        }
+
+
+        /**
+         * Carga los datos iniciales (alumnos, vocabulario, tema diario, preguntas pre-generadas) desde Google Sheets.
+         */
+        async function loadInitialData() {
+            showLoading(loadingWelcome, true);
+            hideError(errorWelcome);
+            try {
+                await loadStudents();
+                await loadVocabulary();
+                await loadDailyTopic();
+                await loadPregeneratedQuestions(); // Cargar las preguntas pre-generadas
+                populateStudentSelect();
+                showLoading(loadingWelcome, false);
+            } catch (error) {
+                showError(errorWelcome, 'Error al cargar los datos iniciales. Asegúrate de que las hojas existen y tienes permisos.');
+            }
+        }
+
+        /** Carga la lista de alumnos desde la hoja 'LlistaAlumnes' usando fetch. */
+        async function loadStudents() {
+            const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${SHEET_NAMES.STUDENTS}!A:B`;
+            const response = await callSheetsApi(url);
+            const values = response.values;
+            if (values && values.length > 1) { // Ignora la fila de cabecera
+                studentsData = values.slice(1).map(row => ({
+                    Nom: row[0],
+                    Idioma: row[1] || 'ca' // Valor por defecto si no hay idioma
+                }));
+            } else {
+                studentsData = [];
+            }
+        }
+
+        /** Carga el vocabulario desde la hoja 'VocabulariTIC' usando fetch. */
+        async function loadVocabulary() {
+            const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${SHEET_NAMES.VOCABULARY}!A:D`;
+            const response = await callSheetsApi(url);
+            const values = response.values;
+            if (values && values.length > 1) {
+                vocabularyData = values.slice(1).map(row => ({
+                    Paraula: row[0],
+                    Competencia: row[1],
+                    Tema: row[2],
+                    Definicio: row[3]
+                }));
+            } else {
+                vocabularyData = [];
+            }
+        }
+
+        /** Carga el tema diario desde la hoja 'ContingutsDiari' para la fecha actual usando fetch. */
+        async function loadDailyTopic() {
+            const today = getTodayDateFormatted();
+            const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${SHEET_NAMES.DAILY_TOPIC}!A:C`;
+            const response = await callSheetsApi(url);
+            const values = response.values;
+            if (values && values.length > 1) {
+                const topicRow = values.slice(1).find(row => row[0] === today);
+                if (topicRow) {
+                    dailyTopicData = {
+                        Data: topicRow[0],
+                        Titol: topicRow[1],
+                        Descripcio: topicRow[2]
+                    };
+                } else {
+                    dailyTopicData = null;
+                }
+            } else {
+                dailyTopicData = null;
+            }
+        }
+
+        /** Carga las preguntas pre-generadas desde la nueva hoja 'PreguntesGenerades'. */
+        async function loadPregeneratedQuestions() {
+            const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${SHEET_NAMES.PREGENERATED_QUESTIONS}!A:H`; // A:H para cubrir todas las columnas
+            const response = await callSheetsApi(url);
+            const values = response.values;
+            if (values && values.length > 1) {
+                pregeneratedQuestionsData = values.slice(1).map(row => ({
+                    Tipo: row[0],
+                    Referencia: row[1],
+                    Pregunta: row[2],
+                    RespuestaCorrecta: row[3],
+                    Opcion1: row[4],
+                    Opcion2: row[5],
+                    Opcion3: row[6],
+                    Opcion4: row[7]
+                }));
+            } else {
+                pregeneratedQuestionsData = [];
+            }
+        }
+
+        /** Rellena el desplegable de alumnos. */
+        function populateStudentSelect() {
+            studentSelect.innerHTML = '<option value="">Selecciona un alumne</option>';
+            studentsData.forEach(student => {
+                const option = document.createElement('option');
+                option.value = student.Nom;
+                option.textContent = student.Nom;
+                studentSelect.appendChild(option);
+            });
+        }
+
+        /**
+         * Inicia la evaluación, recopilando y mezclando preguntas de vocabulario y tema.
+         */
+        async function startEvaluation() {
+            showSection('evaluationSection'); // Show the unified evaluation section
+            currentQuestionIndex = 0;
+            studentAnswers = [];
+            totalVocabCorrect = 0;
+            totalTopicCorrect = 0;
+            allEvaluationQuestions = [];
+            totalVocabQuestions = 0;
+            totalTopicQuestions = 0;
+
+            showLoading(loadingEvaluation, true);
+            currentQuestionText.textContent = 'Carregant preguntes...';
+
+            // 1. Recopilar preguntas de vocabulario
+            if (vocabularyData.length < 10) {
+                showError(errorEvaluation, 'No hi ha prou paraules al vocabulari per fer l\'avaluació (mínim 10).');
+                showLoading(loadingEvaluation, false);
+                return;
+            }
+            const shuffledVocabWords = [...vocabularyData].sort(() => 0.5 - Math.random());
+            const selectedVocabWords = shuffledVocabWords.slice(0, 10);
+
+            for (const wordData of selectedVocabWords) {
+                const pregenerated = pregeneratedQuestionsData.find(q =>
+                    q.Tipo === 'Vocabulari' && q.Referencia.toLowerCase() === wordData.Paraula.toLowerCase()
+                );
+                if (pregenerated) {
+                    allEvaluationQuestions.push({
+                        type: 'Vocabulari', // Add original type for scoring
+                        question: pregenerated.Pregunta,
+                        correctAnswer: pregenerated.RespuestaCorrecta,
+                        questionType: pregenerated.Opcion1 ? 'multiple_choice' : 'translation',
+                        options: [pregenerated.Opcion1, pregenerated.Opcion2, pregenerated.Opcion3, pregenerated.Opcion4].filter(Boolean)
+                    });
+                    totalVocabQuestions++;
+                } else {
+                    // Fallback si no hay pregunta pre-generada para esta palabra
+                    allEvaluationQuestions.push({
+                        type: 'Vocabulari',
+                        question: `Què significa "${wordData.Paraula}"?`,
+                        correctAnswer: wordData.Paraula,
+                        questionType: 'translation',
+                        options: []
+                    });
+                    totalVocabQuestions++;
+                }
+            }
+
+            // 2. Recopilar preguntas de tema
+            if (!dailyTopicData) {
+                showError(errorEvaluation, 'No s\'ha pogut carregar el tema del dia. Revisa la fulla "ContingutsDiari".');
+                showLoading(loadingEvaluation, false);
+                return;
+            }
+
+            const topicRelatedQuestions = pregeneratedQuestionsData.filter(q =>
+                q.Tipo === 'Tema' && q.Referencia.toLowerCase() === dailyTopicData.Titol.toLowerCase()
+            );
+
+            if (topicRelatedQuestions.length === 0) {
+                showError(errorEvaluation, `No s'han trobat preguntes pre-generades per al tema "${dailyTopicData.Titol}".`);
+                // Fallback si no hay preguntas pre-generadas para el tema
+                allEvaluationQuestions.push({
+                    type: 'Tema',
+                    question: `(Error de generació) Què has après sobre "${dailyTopicData.Titol}"?`,
+                    correctAnswer: '...',
+                    questionType: 'text_input'
+                });
+                totalTopicQuestions++;
+            } else {
+                const shuffledTopicQuestions = [...topicRelatedQuestions].sort(() => 0.5 - Math.random());
+                shuffledTopicQuestions.slice(0, 5).forEach(q => { // Seleccionar hasta 5 preguntas de tema
+                    allEvaluationQuestions.push({
+                        type: 'Tema', // Add original type for scoring
+                        question: q.Pregunta,
+                        correctAnswer: q.RespuestaCorrecta,
+                        questionType: q.Opcion1 ? 'multiple_choice' : 'text_input',
+                        options: [q.Opcion1, q.Opcion2, q.Opcion3, q.Opcion4].filter(Boolean)
+                    });
+                    totalTopicQuestions++;
+                });
+            }
+
+            // 3. Mezclar todas las preguntas
+            allEvaluationQuestions.sort(() => 0.5 - Math.random());
+
+            showLoading(loadingEvaluation, false);
+            nextQuestion(); // Start displaying the first question
+        }
+
+        /** Muestra la siguiente pregunta de la evaluación unificada. */
+        function nextQuestion() {
+            if (currentQuestionIndex < allEvaluationQuestions.length) {
+                const question = allEvaluationQuestions[currentQuestionIndex];
+                currentQuestionText.innerHTML = `<strong>${currentQuestionIndex + 1}/${allEvaluationQuestions.length}:</strong> ${question.question}`;
+                hideError(errorEvaluation);
+
+                currentAnswerInput.value = ''; // Limpiar input
+                currentOptionsContainer.innerHTML = ''; // Limpiar opciones
+
+                if (question.questionType === 'multiple_choice' && question.options && question.options.length > 0) {
+                    currentAnswerInput.classList.add('hidden');
+                    currentOptionsContainer.classList.remove('hidden');
+                    // Mezclar opciones para que no siempre aparezcan en el mismo orden
+                    const shuffledOptions = [...question.options].sort(() => 0.5 - Math.random());
+                    shuffledOptions.forEach(optionText => {
+                        const button = document.createElement('button');
+                        button.classList.add('option-button');
+                        button.textContent = optionText;
+                        button.addEventListener('click', () => {
+                            // Deseleccionar otras opciones
+                            Array.from(currentOptionsContainer.children).forEach(btn => btn.classList.remove('selected'));
+                            button.classList.add('selected');
+                            currentAnswerInput.value = optionText; // Usar el input oculto para almacenar la selección
+                        });
+                        currentOptionsContainer.appendChild(button);
+                    });
+                } else {
+                    currentAnswerInput.classList.remove('hidden');
+                    currentOptionsContainer.classList.add('hidden');
+                }
+            } else {
+                // Todas las preguntas respondidas
+                finishEvaluation();
+            }
+        }
+
+        /** Evalúa la respuesta del alumno y pasa a la siguiente pregunta. */
+        submitAnswerButton.addEventListener('click', async () => {
+            const userAnswer = currentAnswerInput.value.trim();
+            if (!userAnswer) {
+                showError(errorEvaluation, 'Per favor, escriu o selecciona una resposta.');
+                return;
+            }
+            hideError(errorEvaluation);
+            showLoading(loadingEvaluation, true);
+
+            const currentQuestion = allEvaluationQuestions[currentQuestionIndex];
+            studentAnswers.push({
+                question: currentQuestion.question,
+                userAnswer: userAnswer,
+                correctAnswer: currentQuestion.correctAnswer,
+                type: currentQuestion.type // Store type for later reference if needed
+            });
+
+            // Evaluación simple (sin Gemini)
+            const isCorrect = userAnswer.toLowerCase() === currentQuestion.correctAnswer.toLowerCase();
+
+            if (isCorrect) {
+                if (currentQuestion.type === 'Vocabulari') {
+                    totalVocabCorrect++;
+                } else if (currentQuestion.type === 'Tema') {
+                    totalTopicCorrect++;
+                }
+            }
+
+            showLoading(loadingEvaluation, false);
+            currentQuestionIndex++;
+            nextQuestion();
+        });
+
+        /**
+         * Finaliza la evaluación, calcula las notas y genera feedback basado en reglas simples.
+         */
+        async function finishEvaluation() {
+            showSection('resultsSection');
+            showLoading(loadingResults, true);
+            hideError(errorResults);
+            saveStatus.textContent = 'Guardant resultats...';
+
+            // Calcular notas sobre 10
+            const vocabScore = (totalVocabQuestions > 0) ? (totalVocabCorrect / totalVocabQuestions) * 10 : 0;
+            const topicScore = (totalTopicQuestions > 0) ? (totalTopicCorrect / totalTopicQuestions) * 10 : 0;
+
+            finalVocabScore.textContent = vocabScore.toFixed(2);
+            finalTopicScore.textContent = topicScore.toFixed(2);
+
+            // Generar feedback basado en reglas simples (sin IA)
+            const feedbackText = generateSimpleFeedback(vocabScore, topicScore);
+            geminiFeedback.textContent = feedbackText; // Mantengo el ID para no cambiar HTML
+
+            // Guardar resultados en Google Sheets
+            try {
+                await saveResultsToSheet(vocabScore.toFixed(2), topicScore.toFixed(2), feedbackText);
+                saveStatus.textContent = 'Resultats guardats correctament!';
+            } catch (error) {
+                showError(errorResults, `Error al guardar els resultats a Google Sheets. Assegura't que la fulla 'NotesAlumnes' existeix i que l'usuari té permisos d'editor.`);
+                saveStatus.textContent = 'Error en guardar els resultats.';
+            }
+
+            showLoading(loadingResults, false);
+        }
+
+        /**
+         * Genera un feedback simple basado en las notas (sin usar IA).
+         * @param {number} vocabScore Nota de vocabulario.
+         * @param {number} topicScore Nota del tema.
+         * @returns {string} El texto del feedback.
+         */
+        function generateSimpleFeedback(vocabScore, topicScore) {
+            let feedback = "Avaluació completada. ";
+
+            if (vocabScore >= 9 && topicScore >= 9) {
+                feedback += "Excel·lent rendiment en ambdues àrees. S'ha demostrat un gran domini del vocabulari i dels conceptes del tema. Felicitats!";
+            } else if (vocabScore >= 7 && topicScore >= 7) {
+                feedback += "Molt bon treball! S'han assolit els objectius en vocabulari i en el tema del dia. Es recomana continuar practicant per consolidar els coneixements.";
+            } else if (vocabScore >= 5 || topicScore >= 5) {
+                feedback += "Bon intent. Hi ha àrees on es pot millorar. Es suggereix repassar el vocabulari i els conceptes del tema per reforçar el que s'ha après.";
+            } else {
+                feedback += "Cal un repàs més profund. Es recomana revisar el vocabulari i el tema del dia amb atenció i demanar ajuda si és necessari.";
+            }
+
+            if (vocabScore < 7 && vocabScore > 0) {
+                feedback += ` La nota de vocabulari (${vocabScore.toFixed(2)}/10) suggereix que un repàs de les paraules seria beneficiós.`;
+            }
+            if (topicScore < 7 && topicScore > 0) {
+                feedback += ` La nota del tema (${topicScore.toFixed(2)}/10) indica que es podria aprofundir més en els continguts.`;
+            }
+             if (vocabScore === 0 && topicScore === 0) {
+                feedback += " Sembla que no s'han respost correctament les preguntes. És important que es repassi tot el contingut."
+            }
+
+            return feedback;
+        }
+
+        /**
+         * Guarda las notas y el feedback en la hoja 'NotesAlumnes' usando fetch.
+         * @param {string} vocabScore Nota de vocabulario.
+         * @param {string} topicScore Nota del tema.
+         * @param {string} feedback Texto de feedback.
+         */
+        async function saveResultsToSheet(vocabScore, topicScore, feedback) {
+            const today = getTodayDateFormatted();
+            const values = [
+                [today, currentStudent, vocabScore, topicScore, feedback]
+            ];
+            const body = {
+                values: values
+            };
+            const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${SHEET_NAMES.NOTES}!A:E:append?valueInputOption=USER_ENTERED`;
+            await callSheetsApi(url, 'POST', body);
+        }
+
+        // --- INICIALIZACIÓN ---
+        // Se asegura de que el DOM esté completamente cargado antes de intentar acceder a los elementos
+        document.addEventListener('DOMContentLoaded', () => {
+            showSection('welcomeSection');
+            // initializeGsiTokenClient() ahora se llama desde handleGsiClientLoad
+        });
+    </script>
+    <!-- Carga de la librería cliente de Google Identity Services (GSI) -->
+    <!-- El atributo onload asegura que handleGsiClientLoad() se llame cuando la librería esté lista. -->
+    <script src="https://accounts.google.com/gsi/client" async defer onload="handleGsiClientLoad()"></script>
+</body>
+</html>
