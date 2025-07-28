@@ -164,10 +164,6 @@
             <p class="text-lg mb-2">CFA LA PAU - Eina per a professors</p>
             <p class="mb-4">Benvingut/da! Selecciona el teu idioma per generar preguntes.</p>
 
-            <!-- Student selection removed as per request -->
-            <!-- <label for="studentSelect" class="block text-left mb-1">Selecciona el teu nom:</label>
-            <select id="studentSelect" class="w-full mb-4"></select> -->
-
             <label for="languageSelect" class="block text-left mb-1">Selecciona el teu idioma:</label>
             <select id="languageSelect" class="w-full mb-6">
                 <option value="ca">Català</option>
@@ -211,7 +207,7 @@
         // IMPORTANT: Replace these placeholders with your actual values.
         // Your API Key for Gemini (Google Generative Language API)
         // Ensure this is your actual key.
-        const GEMINI_API_KEY = 'AIzaSyDJRnXQHMq9dk2xrfwy5v89swUyo8MWdyE'; // <<--- Pega tu clave API de Gemini aquí (Ej: 'AIzaSyDJRnXQHMq9dk2xrfwy5v89swUyo8MWdyE')
+        const GEMINI_API_KEY = 'AIzaSyDJRnXQHMq9dk2xrfwy5v89swUyo8MWdyE'; // <<--- Clave API de Gemini incluida aquí
 
         // Your OAuth 2.0 Client ID (Web Application type)
         const GOOGLE_CLIENT_ID = '267258615325-q44v579iv43lrbvrcjv5old76muvv5h8.apps.googleusercontent.com';
@@ -534,16 +530,15 @@
 
                 const prompt = `Ets un generador de preguntes d'informàtica per a estudiants que aprenen català.
                 Genera un array de 15 objectes JSON, cadascun representant una pregunta.
+                Totes les preguntes han de ser de **múltiple elecció** amb **exactament 4 opcions** (1 correcta i 3 incorrectes).
                 Les preguntes han de ser en català.
 
                 **10 preguntes de vocabulari:**
-                Basades en les següents paraules de vocabulari TIC. Per a cada paraula, crea una pregunta que pot ser:
-                - Una pregunta de traducció a l'idioma "${currentLanguage}" (si la paraula és en català, demana la traducció, o viceversa si té sentit).
-                - Una pregunta de múltiple elecció amb 4 opcions (1 correcta, 3 incorrectes).
+                Basades en les següents paraules de vocabulari TIC.
                 Paraules de vocabulari: ${vocabList}
 
                 **5 preguntes sobre el tema del dia:**
-                Basades en el següent tema del dia. Crea preguntes de resposta lliure o de múltiple elecció (amb 4 opcions).
+                Basades en el següent tema del dia.
                 Tema del dia: Títol: "${dailyTopicData.Titol}", Descripció: "${dailyTopicData.Descripcio}"
 
                 **Format de cada objecte pregunta (JSON):**
@@ -552,14 +547,14 @@
                   "Referencia": "string", // Per a vocabulari: la paraula original. Per a tema: el títol del tema.
                   "Pregunta": "string", // La pregunta completa en català.
                   "RespuestaCorrecta": "string", // La resposta correcta esperada.
-                  "Opcion1": "string", // Buit si no és de múltiple elecció.
-                  "Opcion2": "string", // Buit si no és de múltiple elecció.
-                  "Opcion3": "string", // Buit si no és de múltiple elecció.
-                  "Opcion4": "string"  // Buit si no és de múltiple elecció.
+                  "Opcion1": "string", // Obligatori: Primera opció de resposta.
+                  "Opcion2": "string", // Obligatori: Segona opció de resposta.
+                  "Opcion3": "string", // Obligatori: Tercera opció de resposta.
+                  "Opcion4": "string"  // Obligatori: Quarta opció de resposta.
                 }
 
                 Assegura't que l'array conté exactament 15 preguntes (10 de vocabulari i 5 de tema).
-                Per a les preguntes de múltiple elecció, assegura't que la "RespuestaCorrecta" estigui inclosa en una de les "OpcionX".
+                Per a cada pregunta de múltiple elecció, la "RespuestaCorrecta" ha d'estar inclosa en una de les "Opcion1" a "Opcion4".
                 Les opcions incorrectes han de ser plausibles però clarament errònies.
                 `;
 
@@ -581,7 +576,7 @@
                                 Opcion3: { type: "STRING" },
                                 Opcion4: { type: "STRING" }
                             },
-                            required: ["Tipo", "Referencia", "Pregunta", "RespuestaCorrecta"]
+                            required: ["Tipo", "Referencia", "Pregunta", "RespuestaCorrecta", "Opcion1", "Opcion2", "Opcion3", "Opcion4"]
                         }
                     }
                 };
